@@ -97,8 +97,8 @@ import {
   Cell,
 } from "recharts";
 import { logoutAdmin, selectUser } from "../store/slices/authSlice";
-import CategoriesDashboard from "./Categories/CategoriesDashboard";
-import CategoryServicesManagement from "./Categories/CategoryServicesManagement";
+import CategoriesDashboard from "./categories/CategoriesDashboard";
+import CategoryServicesManagement from "./categories/CategoryServicesManagement";
 
 const drawerWidth = 260;
 
