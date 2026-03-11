@@ -467,7 +467,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
                     >
                       <MoneyIcon sx={{ fontSize: 16, color: "success.main" }} />
                       <Typography variant="subtitle2" fontWeight="bold">
-                        ₹{service.price}
+                        ₹{(service.price / 100).toFixed(2)}
                       </Typography>
                     </Box>
                   </TableCell>
