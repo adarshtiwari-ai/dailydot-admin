@@ -94,6 +94,19 @@ export const addServiceToCategory = createAsyncThunk(
           price: Number(serviceData.price), // Required by backend and must be numeric
         };
 
+        // MRP — only include if a valid non-zero value is provided
+        if (serviceData.mrp) {
+          payload.mrp = Number(serviceData.mrp);
+        }
+
+        // Inclusions / Exclusions — pass through arrays directly
+        if (serviceData.inclusions !== undefined) {
+          payload.inclusions = serviceData.inclusions;
+        }
+        if (serviceData.exclusions !== undefined) {
+          payload.exclusions = serviceData.exclusions;
+        }
+
         // Add optional fields only if they exist and are valid
         if (
           serviceData.duration !== undefined &&
