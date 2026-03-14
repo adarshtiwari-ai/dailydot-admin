@@ -99,7 +99,7 @@ const CategoriesManagement = () => {
     imagePreview: "",
     imageFile: null,
     status: "Active",
-    tags: [],
+    tagId: "",
   });
 
   const [isUploadingCategory, setIsUploadingCategory] = useState(false);
@@ -212,7 +212,7 @@ const CategoriesManagement = () => {
         imagePreview: service.image || "",
         imageFile: null,
         status: service.status,
-        tags: service.tags || [],
+        tagId: service.tagId || "",
       });
     } else {
       setServiceForm({
@@ -227,7 +227,7 @@ const CategoriesManagement = () => {
         imagePreview: "",
         imageFile: null,
         status: "Active",
-        tags: [],
+        tagId: "",
       });
     }
     setOpenDialog(true);
@@ -258,7 +258,7 @@ const CategoriesManagement = () => {
       image: "",
       imagePreview: "",
       status: "Active",
-      tags: [],
+      tagId: "",
     });
   };
 
@@ -358,7 +358,7 @@ const CategoriesManagement = () => {
         duration: serviceForm.duration ? Number(serviceForm.duration) : null,
         status: serviceForm.status,
         images: finalImageUrl ? [finalImageUrl] : [],
-        tags: serviceForm.tags,
+        tagId: serviceForm.tagId || undefined,
         category: selectedCategory._id || selectedCategory.id
       };
 
@@ -431,12 +431,10 @@ const CategoriesManagement = () => {
     });
   };
 
-  const handleToggleServiceTag = (tag) => {
-    const currentTags = serviceForm.tags || [];
-    const newTags = currentTags.includes(tag)
-      ? currentTags.filter((t) => t !== tag)
-      : [...currentTags, tag];
-    setServiceForm({ ...serviceForm, tags: newTags });
+  const handleToggleServiceTag = (tagId) => {
+    // Backend expects a singular tagId. Toggle behavior: if already selected, clear it.
+    const newTagId = serviceForm.tagId === tagId ? "" : tagId;
+    setServiceForm({ ...serviceForm, tagId: newTagId });
   };
 
   if (loading.categories) {
@@ -1086,16 +1084,16 @@ const CategoriesManagement = () => {
                   <Box display="flex" flexWrap="wrap" gap={1}>
                     {selectedCategory.tags.map((tag) => (
                       <Chip
-                        key={tag}
-                        label={tag}
-                        onClick={() => handleToggleServiceTag(tag)}
+                        key={tag._id || tag.id}
+                        label={tag.name}
+                        onClick={() => handleToggleServiceTag(tag._id || tag.id)}
                         color={
-                          serviceForm.tags && serviceForm.tags.includes(tag)
+                          serviceForm.tagId === (tag._id || tag.id)
                             ? "primary"
                             : "default"
                         }
                         variant={
-                          serviceForm.tags && serviceForm.tags.includes(tag)
+                          serviceForm.tagId === (tag._id || tag.id)
                             ? "filled"
                             : "outlined"
                         }

@@ -133,6 +133,11 @@ export const addServiceToCategory = createAsyncThunk(
         if (serviceData.section !== undefined) {
           payload.section = serviceData.section;
         }
+
+        // Tag ID support - backend expects single tagId field (ObjectId)
+        if (serviceData.tagId) {
+          payload.tagId = serviceData.tagId;
+        }
       }
 
       console.log(
