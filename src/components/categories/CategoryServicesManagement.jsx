@@ -77,6 +77,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
     duration: "",
     images: [""],
     isActive: true,
+    isStartingPrice: false,
   });
 
   const [isUploading, setIsUploading] = useState(false);
@@ -126,6 +127,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
           service.images && service.images.length > 0 ? service.images : [""],
         isActive: service.isActive !== false,
         tagId: service.tagId || "",
+        isStartingPrice: service.isStartingPrice || false,
       });
     } else {
       setSelectedService(null);
@@ -140,6 +142,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         images: [""],
         isActive: true,
         tagId: "",
+        isStartingPrice: false,
       });
     }
     setOpenDialog(true);
@@ -159,6 +162,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
       images: [""],
       isActive: true,
       tagId: "",
+      isStartingPrice: false,
     });
   };
 
@@ -223,6 +227,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         images: serviceForm.images.filter(Boolean),
         tagId: serviceForm.tagId,
         isActive: serviceForm.isActive,
+        isStartingPrice: serviceForm.isStartingPrice,
         category: categoryId
       };
 
@@ -796,6 +801,25 @@ const CategoryServicesManagement = ({ category, onBack }) => {
                 )}
               </Box>
             </Box>
+
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={serviceForm.isStartingPrice}
+                  onChange={(e) => setServiceForm({ ...serviceForm, isStartingPrice: e.target.checked })}
+                  color="primary"
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="body1">Show 'Starts from' Label</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Turn this ON for services with variable pricing (e.g., repairs)
+                  </Typography>
+                </Box>
+              }
+              sx={{ mb: 2, mt: 1 }}
+            />
 
             <FormControlLabel
               control={
