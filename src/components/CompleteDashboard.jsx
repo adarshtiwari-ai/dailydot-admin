@@ -12,6 +12,7 @@ import ProfessionalsManagement from "./ProfessionalsManagement";
 import AppConfigManagement from "./AppConfigManagement";
 import TrendingServicesManager from "./services/TrendingServicesManager";
 import ProviderLedger from "./ProviderLedger";
+import PushNotificationsManagement from "./PushNotificationsManagement";
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -119,6 +120,7 @@ const menuItems = [
   { text: "App Config", icon: AppConfigIcon, value: "app-config" },
   { text: "Trending", icon: TrendingUp, value: "trending-services" },
   { text: "Provider Ledger", icon: LedgerIcon, value: "provider-ledger" },
+  { text: "Push Notifications", icon: NotificationsIcon, value: "push-notifications" },
 ];
 
 const StatCard = ({ title, value, growth, icon: StatIcon, color = "#3498db" }) => ( // eslint-disable-line no-unused-vars
@@ -496,6 +498,7 @@ const CompleteDashboard = () => {
       "app-config": "App Mobile Configuration",
       "trending-services": "Trending Services Management",
       "provider-ledger": "Provider Ledger & Settlements",
+      "push-notifications": "Push Notification Broadcast",
     };
     return titles[view] || "Dashboard";
   };
@@ -557,6 +560,9 @@ const CompleteDashboard = () => {
 
       case "provider-ledger":
         return <ProviderLedger />;
+
+      case "push-notifications":
+        return <PushNotificationsManagement />;
 
       default:
         return <DashboardContent />;
