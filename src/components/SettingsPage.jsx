@@ -202,6 +202,34 @@ const SettingsPage = () => {
     }
   };
 
+  const handleAddFee = () => {
+    setLocalBillingSettings({
+      ...localBillingSettings,
+      globalFees: [
+        ...(localBillingSettings.globalFees || []),
+        { name: "", amount: 0, type: "flat", isActive: true }
+      ]
+    });
+  };
+
+  const handleRemoveFee = (index) => {
+    const updatedFees = [...localBillingSettings.globalFees];
+    updatedFees.splice(index, 1);
+    setLocalBillingSettings({
+      ...localBillingSettings,
+      globalFees: updatedFees
+    });
+  };
+
+  const handleFeeChange = (index, field, value) => {
+    const updatedFees = [...localBillingSettings.globalFees];
+    updatedFees[index] = { ...updatedFees[index], [field]: value };
+    setLocalBillingSettings({
+      ...localBillingSettings,
+      globalFees: updatedFees
+    });
+  };
+
   return (
     <Box>
       <Typography variant="h4" sx={{ mb: 3 }}>
@@ -636,67 +664,101 @@ const SettingsPage = () => {
             </Typography>
 
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12}>
                 <Paper sx={{ p: 3 }}>
-                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                    Tax Configuration
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    label="Default Tax Rate (GST)"
-                    type="number"
-                    value={localBillingSettings.defaultTaxRate}
-                    onChange={(e) =>
-                      setLocalBillingSettings({
-                        ...localBillingSettings,
-                        defaultTaxRate: Number(e.target.value),
-                      })
-                    }
-                    InputProps={{
-                      endAdornment: <Typography variant="body2">%</Typography>,
-                    }}
-                    helperText="Calculated on item total before fees"
-                    sx={{ mb: 2 }}
-                  />
-                </Paper>
-              </Grid>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                    <Typography variant="subtitle1">
+                      Platform & Global Fees
+                    </Typography>
+                    <Button 
+                      variant="outlined" 
+                      startIcon={<PaymentsIcon />} 
+                      onClick={handleAddFee}
+                      size="small"
+                    >
+                      Add Custom Fee
+                    </Button>
+                  </Box>
 
-              <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 3 }}>
-                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                    Service & Platform Fees
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    label="Service Charge (Fixed)"
-                    type="number"
-                    value={localBillingSettings.serviceCharge}
-                    onChange={(e) =>
-                      setLocalBillingSettings({
-                        ...localBillingSettings,
-                        serviceCharge: Number(e.target.value),
-                      })
-                    }
-                    InputProps={{
-                      startAdornment: <Typography variant="body2" sx={{ mr: 1 }}>₹</Typography>,
-                    }}
-                    sx={{ mb: 2 }}
-                  />
-                  <TextField
-                    fullWidth
-                    label="Convenience Fee (Fixed)"
-                    type="number"
-                    value={localBillingSettings.convenienceFee}
-                    onChange={(e) =>
-                      setLocalBillingSettings({
-                        ...localBillingSettings,
-                        convenienceFee: Number(e.target.value),
-                      })
-                    }
-                    InputProps={{
-                      startAdornment: <Typography variant="body2" sx={{ mr: 1 }}>₹</Typography>,
-                    }}
-                  />
+                  <List>
+                    {(localBillingSettings.globalFees || []).map((fee, index) => (
+                      <ListItem 
+                        key={index} 
+                        sx={{ 
+                          flexDirection: 'column', 
+                          alignItems: 'stretch', 
+                          bgcolor: 'background.paper', 
+                          mb: 2, 
+                          borderRadius: 2, 
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          p: 2
+                        }}
+                      >
+                        <Grid container spacing={2} alignItems="center">
+                          <Grid item xs={12} md={4}>
+                            <TextField
+                              fullWidth
+                              label="Fee Name"
+                              placeholder="e.g. Service Charge"
+                              value={fee.name}
+                              onChange={(e) => handleFeeChange(index, 'name', e.target.value)}
+                              size="small"
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={2}>
+                            <TextField
+                              fullWidth
+                              label="Amount"
+                              type="number"
+                              value={fee.amount}
+                              onChange={(e) => handleFeeChange(index, 'amount', Number(e.target.value))}
+                              size="small"
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={3}>
+                            <FormControl fullWidth size="small">
+                              <InputLabel>Type</InputLabel>
+                              <Select
+                                value={fee.type}
+                                label="Type"
+                                onChange={(e) => handleFeeChange(index, 'type', e.target.value)}
+                              >
+                                <MenuItem value="flat">Flat (₹)</MenuItem>
+                                <MenuItem value="percentage">Percentage (%)</MenuItem>
+                              </Select>
+                            </FormControl>
+                          </Grid>
+                          <Grid item xs={12} md={3}>
+                            <Box display="flex" alignItems="center" justifyContent="space-between">
+                              <FormControlLabel
+                                control={
+                                  <Switch
+                                    checked={fee.isActive}
+                                    onChange={(e) => handleFeeChange(index, 'isActive', e.target.checked)}
+                                    size="small"
+                                  />
+                                }
+                                label="Active"
+                              />
+                              <Button 
+                                color="error" 
+                                size="small" 
+                                onClick={() => handleRemoveFee(index)}
+                              >
+                                Delete
+                              </Button>
+                            </Box>
+                          </Grid>
+                        </Grid>
+                      </ListItem>
+                    ))}
+                    {(localBillingSettings.globalFees || []).length === 0 && (
+                      <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
+                        No global fees configured. Default legacy fees will be applied.
+                      </Typography>
+                    )}
+                  </List>
                 </Paper>
               </Grid>
 
@@ -712,19 +774,33 @@ const SettingsPage = () => {
                     <Typography variant="body2">Tax ({localBillingSettings.defaultTaxRate}%):</Typography>
                     <Typography variant="body2">₹{(1000 * localBillingSettings.defaultTaxRate / 100).toFixed(2)}</Typography>
                   </Box>
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="body2">Service Charge:</Typography>
-                    <Typography variant="body2">₹{localBillingSettings.serviceCharge.toFixed(2)}</Typography>
-                  </Box>
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="body2">Convenience Fee:</Typography>
-                    <Typography variant="body2">₹{localBillingSettings.convenienceFee.toFixed(2)}</Typography>
-                  </Box>
+                  
+                  {/* Dynamic Fees Preview */}
+                  {(localBillingSettings.globalFees || []).map((fee, idx) => {
+                    if (!fee.isActive || !fee.name) return null;
+                    const amount = fee.type === 'flat' 
+                      ? fee.amount 
+                      : (1000 * (fee.amount / 100));
+                    return (
+                      <Box key={idx} display="flex" justifyContent="space-between" mb={1}>
+                        <Typography variant="body2">{fee.name}:</Typography>
+                        <Typography variant="body2">₹{amount.toFixed(2)}</Typography>
+                      </Box>
+                    );
+                  })}
+
                   <Divider sx={{ my: 1 }} />
                   <Box display="flex" justifyContent="space-between">
                     <Typography variant="subtitle2">Grand Total:</Typography>
                     <Typography variant="subtitle2" color="primary.main">
-                      ₹{(1000 + (1000 * localBillingSettings.defaultTaxRate / 100) + localBillingSettings.serviceCharge + localBillingSettings.convenienceFee).toFixed(2)}
+                      ₹{(
+                        1000 + 
+                        (1000 * localBillingSettings.defaultTaxRate / 100) + 
+                        (localBillingSettings.globalFees || []).reduce((acc, fee) => {
+                          if (!fee.isActive) return acc;
+                          return acc + (fee.type === 'flat' ? fee.amount : (1000 * (fee.amount / 100)));
+                        }, 0)
+                      ).toFixed(2)}
                     </Typography>
                   </Box>
                 </Paper>

@@ -111,9 +111,10 @@ const initialState = {
     activeMapProvider: "ola"
   },
   billingSettings: {
-    defaultTaxRate: 18,
+    defaultTaxRate: 0.18,
     serviceCharge: 50,
-    convenienceFee: 25
+    convenienceFee: 25,
+    globalFees: []
   },
   notificationSettings: {
     newBookings: true,
