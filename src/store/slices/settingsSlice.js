@@ -110,6 +110,11 @@ const initialState = {
     currency: "INR",
     activeMapProvider: "ola"
   },
+  billingSettings: {
+    defaultTaxRate: 18,
+    serviceCharge: 50,
+    convenienceFee: 25
+  },
   notificationSettings: {
     newBookings: true,
     paymentUpdates: true,
@@ -223,6 +228,7 @@ const settingsSlice = createSlice({
         if (action.payload.data) {
           state.systemSettings = action.payload.data.system;
           state.notificationSettings = action.payload.data.notifications;
+          state.billingSettings = action.payload.data.billing || initialState.billingSettings;
         }
       })
       .addCase(getSettings.rejected, (state, action) => {
@@ -301,6 +307,12 @@ export const selectNotificationSettings = (state) =>
     dailyReports: false,
     weeklyReports: true,
     monthlyReports: true,
+  };
+export const selectBillingSettings = (state) =>
+  state.settings?.billingSettings || {
+    defaultTaxRate: 18,
+    serviceCharge: 50,
+    convenienceFee: 25
   };
 export const selectSettingsLoading = (state) =>
   state.settings?.isLoading || {

@@ -36,6 +36,7 @@ import {
   Language as LanguageIcon,
   Palette as PaletteIcon,
   Save as SaveIcon,
+  Payments as PaymentsIcon,
 } from "@mui/icons-material";
 
 // Import Redux actions
@@ -53,12 +54,14 @@ import {
   selectSettingsError,
   selectSettingsSuccess,
   getSettings,
+  selectBillingSettings,
 } from "../store/slices/settingsSlice";
 
 const SettingsPage = () => {
   const dispatch = useDispatch();
   const adminProfile = useSelector(selectAdminProfile);
   const systemSettings = useSelector(selectSystemSettings);
+  const billingSettings = useSelector(selectBillingSettings);
   const notificationSettings = useSelector(selectNotificationSettings);
   const loading = useSelector(selectSettingsLoading);
   const error = useSelector(selectSettingsError);
@@ -83,6 +86,8 @@ const SettingsPage = () => {
   // Local system settings state
   const [localSystemSettings, setLocalSystemSettings] =
     useState(systemSettings);
+  const [localBillingSettings, setLocalBillingSettings] =
+    useState(billingSettings);
   const [localNotificationSettings, setLocalNotificationSettings] =
     useState(notificationSettings);
 
@@ -106,8 +111,9 @@ const SettingsPage = () => {
   // Update local settings when Redux state changes
   useEffect(() => {
     setLocalSystemSettings(systemSettings);
+    setLocalBillingSettings(billingSettings);
     setLocalNotificationSettings(notificationSettings);
-  }, [systemSettings, notificationSettings]);
+  }, [systemSettings, billingSettings, notificationSettings]);
 
   // Clear success messages after 3 seconds
   // Clear success messages after 3 seconds - FIXED VERSION
@@ -186,6 +192,16 @@ const SettingsPage = () => {
     }
   };
 
+  // Handle billing settings save
+  const handleBillingSettingsSave = async () => {
+    try {
+      // Logic to send nested billing object
+      await dispatch(updateSystemSettings({ billing: localBillingSettings })).unwrap();
+    } catch (error) {
+      console.error("Failed to update billing settings:", error);
+    }
+  };
+
   return (
     <Box>
       <Typography variant="h4" sx={{ mb: 3 }}>
@@ -231,6 +247,7 @@ const SettingsPage = () => {
           <Tab label="Profile" icon={<PersonIcon />} />
           <Tab label="Security" icon={<SecurityIcon />} />
           <Tab label="System" icon={<SettingsIcon />} />
+          <Tab label="Billing" icon={<PaymentsIcon />} />
           <Tab label="Notifications" icon={<NotificationIcon />} />
         </Tabs>
       </Card>
@@ -610,8 +627,129 @@ const SettingsPage = () => {
         </Card>
       )}
 
-      {/* Notifications Tab */}
+      {/* Billing Tab */}
       {tabValue === 3 && (
+        <Card>
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ mb: 3 }}>
+              Billing & Fees Configuration
+            </Typography>
+
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <Paper sx={{ p: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    Tax Configuration
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    label="Default Tax Rate (GST)"
+                    type="number"
+                    value={localBillingSettings.defaultTaxRate}
+                    onChange={(e) =>
+                      setLocalBillingSettings({
+                        ...localBillingSettings,
+                        defaultTaxRate: Number(e.target.value),
+                      })
+                    }
+                    InputProps={{
+                      endAdornment: <Typography variant="body2">%</Typography>,
+                    }}
+                    helperText="Calculated on item total before fees"
+                    sx={{ mb: 2 }}
+                  />
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Paper sx={{ p: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    Service & Platform Fees
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    label="Service Charge (Fixed)"
+                    type="number"
+                    value={localBillingSettings.serviceCharge}
+                    onChange={(e) =>
+                      setLocalBillingSettings({
+                        ...localBillingSettings,
+                        serviceCharge: Number(e.target.value),
+                      })
+                    }
+                    InputProps={{
+                      startAdornment: <Typography variant="body2" sx={{ mr: 1 }}>₹</Typography>,
+                    }}
+                    sx={{ mb: 2 }}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Convenience Fee (Fixed)"
+                    type="number"
+                    value={localBillingSettings.convenienceFee}
+                    onChange={(e) =>
+                      setLocalBillingSettings({
+                        ...localBillingSettings,
+                        convenienceFee: Number(e.target.value),
+                      })
+                    }
+                    InputProps={{
+                      startAdornment: <Typography variant="body2" sx={{ mr: 1 }}>₹</Typography>,
+                    }}
+                  />
+                </Paper>
+              </Grid>
+
+              {/* Billing Preview Mock */}
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3, bgcolor: 'grey.50', border: '1px dashed grey.400' }}>
+                  <Typography variant="subtitle2" gutterBottom>Preview: Bill for ₹1,000 Service</Typography>
+                  <Box display="flex" justifyContent="space-between" mb={1}>
+                    <Typography variant="body2">Subtotal:</Typography>
+                    <Typography variant="body2">₹1,000.00</Typography>
+                  </Box>
+                  <Box display="flex" justifyContent="space-between" mb={1}>
+                    <Typography variant="body2">Tax ({localBillingSettings.defaultTaxRate}%):</Typography>
+                    <Typography variant="body2">₹{(1000 * localBillingSettings.defaultTaxRate / 100).toFixed(2)}</Typography>
+                  </Box>
+                  <Box display="flex" justifyContent="space-between" mb={1}>
+                    <Typography variant="body2">Service Charge:</Typography>
+                    <Typography variant="body2">₹{localBillingSettings.serviceCharge.toFixed(2)}</Typography>
+                  </Box>
+                  <Box display="flex" justifyContent="space-between" mb={1}>
+                    <Typography variant="body2">Convenience Fee:</Typography>
+                    <Typography variant="body2">₹{localBillingSettings.convenienceFee.toFixed(2)}</Typography>
+                  </Box>
+                  <Divider sx={{ my: 1 }} />
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="subtitle2">Grand Total:</Typography>
+                    <Typography variant="subtitle2" color="primary.main">
+                      ₹{(1000 + (1000 * localBillingSettings.defaultTaxRate / 100) + localBillingSettings.serviceCharge + localBillingSettings.convenienceFee).toFixed(2)}
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Box display="flex" justifyContent="flex-end">
+                  <Button
+                    variant="contained"
+                    onClick={handleBillingSettingsSave}
+                    startIcon={<SaveIcon />}
+                    size="large"
+                    sx={{ px: 4 }}
+                  >
+                    Save Billing Settings
+                  </Button>
+                </Box>
+              </Grid>
+            </Grid>
+          </Box>
+        </Card>
+      )}
+
+      {/* Notifications Tab */}
+      {tabValue === 4 && (
         <Card>
           <Box sx={{ p: 3 }}>
             <Typography variant="h6" sx={{ mb: 3 }}>
