@@ -13,6 +13,7 @@ import AppConfigManagement from "./AppConfigManagement";
 import TrendingServicesManager from "./services/TrendingServicesManager";
 import ProviderLedger from "./ProviderLedger";
 import PushNotificationsManagement from "./PushNotificationsManagement";
+import PromotionsManagement from "./PromotionsManagement";
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -72,7 +73,8 @@ import {
   DirectionsCar as CarIcon,
   Weekend as DecorIcon,
   Smartphone as AppConfigIcon,
-  AccountBalanceWallet as LedgerIcon
+  AccountBalanceWallet as LedgerIcon,
+  LocalOffer as PromotionsIcon
 } from "@mui/icons-material";
 import {
   selectDashboardStats,
@@ -121,6 +123,7 @@ const menuItems = [
   { text: "Trending", icon: TrendingUp, value: "trending-services" },
   { text: "Provider Ledger", icon: LedgerIcon, value: "provider-ledger" },
   { text: "Push Notifications", icon: NotificationsIcon, value: "push-notifications" },
+  { text: "Promotions", icon: PromotionsIcon, value: "promotions" },
 ];
 
 const StatCard = ({ title, value, growth, icon: StatIcon, color = "#3498db" }) => ( // eslint-disable-line no-unused-vars
@@ -499,6 +502,7 @@ const CompleteDashboard = () => {
       "trending-services": "Trending Services Management",
       "provider-ledger": "Provider Ledger & Settlements",
       "push-notifications": "Push Notification Broadcast",
+      promotions: "Promotions & Discounts",
     };
     return titles[view] || "Dashboard";
   };
@@ -563,6 +567,9 @@ const CompleteDashboard = () => {
 
       case "push-notifications":
         return <PushNotificationsManagement />;
+
+      case "promotions":
+        return <PromotionsManagement />;
 
       default:
         return <DashboardContent />;

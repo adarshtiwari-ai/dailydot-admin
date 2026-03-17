@@ -206,4 +206,13 @@ export const apiUtils = {
   },
 };
 
+// Promotions API
+export const promotionsAPI = {
+  getAll: (params = {}) => api.get("/admin/discounts", { params }),
+  getById: (id) => api.get(`/admin/discounts/${id}`),
+  create: (data) => api.post("/admin/discounts", data),
+  update: (id, data) => api.put(`/admin/discounts/${id}`, data),
+  delete: (id) => api.delete(`/admin/discounts/${id}`),
+};
+
 export default api;

@@ -53,6 +53,8 @@ const BookingsManagement = () => {
   const [proPhone, setProPhone] = useState("");
   const [materialName, setMaterialName] = useState("");
   const [materialCost, setMaterialCost] = useState("");
+  const [customDiscountName, setCustomDiscountName] = useState("");
+  const [customDiscountAmount, setCustomDiscountAmount] = useState("");
 
   // Fetch bookings when component loads
   useEffect(() => {
@@ -67,6 +69,8 @@ const BookingsManagement = () => {
     setProPhone("");
     setMaterialName("");
     setMaterialCost("");
+    setCustomDiscountName("");
+    setCustomDiscountAmount("");
     setOpenDialog(true);
   };
 
@@ -113,6 +117,28 @@ const BookingsManagement = () => {
         console.error("Failed to add material:", err);
         const errorMessage = typeof err === 'object' ? (err.message || JSON.stringify(err)) : String(err);
         alert(`Failed to add material: ${errorMessage}`);
+      }
+    }
+  };
+
+  const handleApplyCustomDiscount = async () => {
+    if (selectedBooking && customDiscountName && customDiscountAmount) {
+      console.log("Applying Custom Discount for:", selectedBooking._id || selectedBooking.id, customDiscountName, customDiscountAmount);
+      try {
+        await dispatch(addBookingMaterial({
+          id: selectedBooking._id || selectedBooking.id,
+          name: `Discount: ${customDiscountName}`,
+          cost: -Number(customDiscountAmount)
+        })).unwrap();
+        
+        setCustomDiscountName("");
+        setCustomDiscountAmount("");
+        dispatch(fetchBookings());
+        const updated = bookings.find(b => (b._id || b.id) === (selectedBooking._id || selectedBooking.id));
+        if (updated) setSelectedBooking(updated);
+      } catch (err) {
+        console.error("Failed to apply discount:", err);
+        alert(`Failed to apply discount: ${err.message || 'Unknown error'}`);
       }
     }
   };
@@ -359,6 +385,36 @@ const BookingsManagement = () => {
                       disabled={!materialName || !materialCost || loading.updating}
                     >
                       Add
+                    </Button>
+                  </Box>
+
+                  {/* Ad-Hoc Discount Section */}
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 3, p: 2, bgcolor: '#f0fdf4', borderRadius: 1, border: '1px dashed #4ade80' }}>
+                    <Typography variant="subtitle2" color="success.main" sx={{ minWidth: 120 }}>
+                      Apply Ad-Hoc Discount:
+                    </Typography>
+                    <TextField 
+                      size="small" 
+                      label="Reason (e.g., Apology)" 
+                      sx={{ flexGrow: 1 }}
+                      value={customDiscountName} 
+                      onChange={(e) => setCustomDiscountName(e.target.value)}
+                    />
+                    <TextField 
+                      size="small" 
+                      type="number" 
+                      label="Amount (₹)" 
+                      sx={{ width: 120 }}
+                      value={customDiscountAmount} 
+                      onChange={(e) => setCustomDiscountAmount(e.target.value)}
+                    />
+                    <Button 
+                      variant="contained" 
+                      color="success" 
+                      onClick={handleApplyCustomDiscount}
+                      disabled={!customDiscountName || !customDiscountAmount || loading.updating}
+                    >
+                      Apply
                     </Button>
                   </Box>
                 </Box>
