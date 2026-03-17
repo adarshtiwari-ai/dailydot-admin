@@ -387,36 +387,36 @@ const BookingsManagement = () => {
                       Add
                     </Button>
                   </Box>
+                </Box>
 
-                  {/* Ad-Hoc Discount Section */}
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 3, p: 2, bgcolor: '#f0fdf4', borderRadius: 1, border: '1px dashed #4ade80' }}>
-                    <Typography variant="subtitle2" color="success.main" sx={{ minWidth: 120 }}>
-                      Apply Ad-Hoc Discount:
-                    </Typography>
-                    <TextField 
-                      size="small" 
-                      label="Reason (e.g., Apology)" 
-                      sx={{ flexGrow: 1 }}
-                      value={customDiscountName} 
-                      onChange={(e) => setCustomDiscountName(e.target.value)}
-                    />
-                    <TextField 
-                      size="small" 
-                      type="number" 
-                      label="Amount (₹)" 
-                      sx={{ width: 120 }}
-                      value={customDiscountAmount} 
-                      onChange={(e) => setCustomDiscountAmount(e.target.value)}
-                    />
-                    <Button 
-                      variant="contained" 
-                      color="success" 
-                      onClick={handleApplyCustomDiscount}
-                      disabled={!customDiscountName || !customDiscountAmount || loading.updating}
-                    >
-                      Apply
-                    </Button>
-                  </Box>
+                {/* Ad-Hoc Discount Section */}
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 3, p: 2, bgcolor: '#fef2f2', borderRadius: 1, border: '1px dashed #ef4444' }}>
+                  <Typography variant="subtitle2" color="error.main" sx={{ minWidth: 120 }}>
+                    Apply Ad-Hoc Discount:
+                  </Typography>
+                  <TextField 
+                    size="small" 
+                    label="Reason (e.g., Apology)" 
+                    sx={{ flexGrow: 1 }}
+                    value={customDiscountName} 
+                    onChange={(e) => setCustomDiscountName(e.target.value)}
+                  />
+                  <TextField 
+                    size="small" 
+                    type="number" 
+                    label="Amount (₹)" 
+                    sx={{ width: 120 }}
+                    value={customDiscountAmount} 
+                    onChange={(e) => setCustomDiscountAmount(e.target.value)}
+                  />
+                  <Button 
+                    variant="contained" 
+                    color="error" 
+                    onClick={handleApplyCustomDiscount}
+                    disabled={!customDiscountName || !customDiscountAmount || loading.updating}
+                  >
+                    Apply
+                  </Button>
                 </Box>
               </Grid>
 
