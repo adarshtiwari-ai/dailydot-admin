@@ -798,7 +798,10 @@ const SettingsPage = () => {
                         (1000 * localBillingSettings.defaultTaxRate / 100) + 
                         (localBillingSettings.globalFees || []).reduce((acc, fee) => {
                           if (!fee.isActive) return acc;
-                          return acc + (fee.type === 'flat' ? fee.amount : (1000 * (fee.amount / 100)));
+                          const feeAmount = fee.type === 'flat' 
+                            ? fee.amount 
+                            : (1000 * (fee.amount / 100));
+                          return acc + feeAmount;
                         }, 0)
                       ).toFixed(2)}
                     </Typography>
