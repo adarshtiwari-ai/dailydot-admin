@@ -52,7 +52,7 @@ export const updateSystemSettings = createAsyncThunk(
   "settings/updateSystemSettings",
   async (settings, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.put("/settings", { system: settings });
+      const response = await axiosInstance.put("/settings", settings);
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -247,7 +247,15 @@ const settingsSlice = createSlice({
         state.isLoading.savingSettings = false;
         state.success.settingsUpdate = true;
         if (action.payload.data) {
-          state.systemSettings = action.payload.data.system;
+          if (action.payload.data.system) {
+            state.systemSettings = action.payload.data.system;
+          }
+          if (action.payload.data.billing) {
+            state.billingSettings = action.payload.data.billing;
+          }
+          if (action.payload.data.notifications) {
+            state.notificationSettings = action.payload.data.notifications;
+          }
         }
       })
       .addCase(updateSystemSettings.rejected, (state, action) => {

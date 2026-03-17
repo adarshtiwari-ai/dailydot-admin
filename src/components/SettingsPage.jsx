@@ -177,7 +177,7 @@ const SettingsPage = () => {
   // Handle system settings save
   const handleSystemSettingsSave = async () => {
     try {
-      await dispatch(updateSystemSettings(localSystemSettings)).unwrap();
+      await dispatch(updateSystemSettings({ system: localSystemSettings })).unwrap();
     } catch (error) {
       console.error("Failed to update system settings:", error);
     }
@@ -186,7 +186,7 @@ const SettingsPage = () => {
   // Handle notification settings save
   const handleNotificationSettingsSave = async () => {
     try {
-      await dispatch(updateNotificationSettings(localNotificationSettings)).unwrap();
+      await dispatch(updateSystemSettings({ notifications: localNotificationSettings })).unwrap();
     } catch (error) {
       console.error("Failed to update notification settings:", error);
     }
@@ -195,7 +195,7 @@ const SettingsPage = () => {
   // Handle billing settings save
   const handleBillingSettingsSave = async () => {
     try {
-      // Logic to send nested billing object
+      // Logic to send top-level billing object
       await dispatch(updateSystemSettings({ billing: localBillingSettings })).unwrap();
     } catch (error) {
       console.error("Failed to update billing settings:", error);
