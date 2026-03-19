@@ -95,6 +95,7 @@ const SettingsPage = () => {
   // Local branding settings state — safe splash fallback prevents crashes
   const [localBrandingSettings, setLocalBrandingSettings] = useState({
     splash: systemSettings?.splash || { logoUrl: '', backgroundColor: '#0F172A' },
+    homeScreen: systemSettings?.homeScreen || { heroBannerUrl: '' },
     featureFlags: systemSettings?.featureFlags || {
       enableWallet: false,
       enableReferrals: false,
@@ -104,6 +105,7 @@ const SettingsPage = () => {
     },
   });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
   // Initialize profile form when admin profile loads
   useEffect(() => {
@@ -130,6 +132,7 @@ const SettingsPage = () => {
     // Sync branding — keep safe defaults so splash is never undefined
     setLocalBrandingSettings({
       splash: systemSettings?.splash || { logoUrl: '', backgroundColor: '#0F172A' },
+      homeScreen: systemSettings?.homeScreen || { heroBannerUrl: '' },
       featureFlags: systemSettings?.featureFlags || {
         enableWallet: false, enableReferrals: false, enableNewUI: false,
         seasonalMode: false, enableProviderChat: false,
@@ -230,6 +233,7 @@ const SettingsPage = () => {
       await dispatch(updateSystemSettings({
         splash: localBrandingSettings.splash,
         featureFlags: localBrandingSettings.featureFlags,
+        homeScreen: localBrandingSettings.homeScreen,
       })).unwrap();
     } catch (error) {
       console.error("Failed to update branding settings:", error);
@@ -251,6 +255,24 @@ const SettingsPage = () => {
       console.error('Logo upload failed:', err);
     } finally {
       setIsUploadingLogo(false);
+    }
+  };
+  
+  // Handle Hero Banner upload
+  const handleBannerUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingBanner(true);
+    try {
+      const secureUrl = await uploadToCloudinary(file, { folder: 'home_banners' });
+      setLocalBrandingSettings((prev) => ({
+        ...prev,
+        homeScreen: { ...prev.homeScreen, heroBannerUrl: secureUrl },
+      }));
+    } catch (err) {
+      console.error('Hero Banner upload failed:', err);
+    } finally {
+      setIsUploadingBanner(false);
     }
   };
 
@@ -1113,6 +1135,64 @@ const SettingsPage = () => {
                     helperText="Auto-filled on upload. You can also paste a URL directly."
                     size="small"
                   />
+                </Paper>
+
+                {/* Home Hero Banner Upload */}
+                <Paper sx={{ p: 3, mb: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    Home Screen Hero Banner
+                  </Typography>
+
+                  <Box sx={{ mb: 2 }}>
+                    <Button
+                      variant="outlined"
+                      component="label"
+                      startIcon={
+                        isUploadingBanner
+                          ? <CircularProgress size={18} />
+                          : <CloudUploadIcon />
+                      }
+                      disabled={isUploadingBanner}
+                    >
+                      {isUploadingBanner ? 'Uploading…' : 'Upload Banner to Cloudinary'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={handleBannerUpload}
+                      />
+                    </Button>
+                    <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
+                      High-resolution landscape image (16:9) recommended. This will sit behind the search bar.
+                    </Typography>
+                  </Box>
+
+                  {/* URL override / manual entry */}
+                  <TextField
+                    fullWidth
+                    label="Hero Banner URL"
+                    placeholder="https://res.cloudinary.com/…"
+                    value={localBrandingSettings.homeScreen.heroBannerUrl}
+                    onChange={(e) =>
+                      setLocalBrandingSettings((prev) => ({
+                        ...prev,
+                        homeScreen: { ...prev.homeScreen, heroBannerUrl: e.target.value },
+                      }))
+                    }
+                    helperText="Auto-filled on upload. Used for the home screen parallax effect."
+                    size="small"
+                  />
+
+                  {/* Banner Preview Thumbnail */}
+                  {localBrandingSettings.homeScreen.heroBannerUrl && (
+                    <Box sx={{ mt: 2, width: '100%', height: 120, borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.100', border: '1px solid', borderColor: 'divider' }}>
+                       <Box 
+                        component="img"
+                        src={localBrandingSettings.homeScreen.heroBannerUrl}
+                        sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </Box>
+                  )}
                 </Paper>
 
                 {/* Background Color */}

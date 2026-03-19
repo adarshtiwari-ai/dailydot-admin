@@ -237,6 +237,9 @@ const settingsSlice = createSlice({
           if (action.payload.data.featureFlags) {
             state.systemSettings.featureFlags = action.payload.data.featureFlags;
           }
+          if (action.payload.data.homeScreen) {
+            state.systemSettings.homeScreen = action.payload.data.homeScreen;
+          }
         }
       })
       .addCase(getSettings.rejected, (state, action) => {
@@ -269,6 +272,9 @@ const settingsSlice = createSlice({
           }
           if (action.payload?.data?.featureFlags) {
             state.systemSettings.featureFlags = action.payload.data.featureFlags;
+          }
+          if (action.payload?.data?.homeScreen) {
+            state.systemSettings.homeScreen = action.payload.data.homeScreen;
           }
         }
       })
