@@ -476,7 +476,7 @@ const servicesSlice = createSlice({
         state.isLoading.creating = false;
         const { categoryId, service } = action.payload;
         const categoryIndex = state.categories.findIndex(
-          (cat) => cat.id === categoryId
+          (cat) => String(cat._id || cat.id) === String(categoryId)
         );
         if (categoryIndex !== -1) {
           if (!state.categories[categoryIndex].services) {

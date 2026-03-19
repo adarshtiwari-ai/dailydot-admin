@@ -32,11 +32,11 @@ import {
   Settings as SettingsIcon,
   Notifications as NotificationIcon,
   Security as SecurityIcon,
-  Backup as BackupIcon,
-  Language as LanguageIcon,
   Palette as PaletteIcon,
   Save as SaveIcon,
   Payments as PaymentsIcon,
+  PhoneIphone as PhoneIphoneIcon,
+  CloudUpload as CloudUploadIcon,
 } from "@mui/icons-material";
 
 // Import Redux actions
@@ -56,6 +56,7 @@ import {
   getSettings,
   selectBillingSettings,
 } from "../store/slices/settingsSlice";
+import { uploadToCloudinary } from "../utils/uploadToCloudinary";
 
 const SettingsPage = () => {
   const dispatch = useDispatch();
@@ -91,6 +92,19 @@ const SettingsPage = () => {
   const [localNotificationSettings, setLocalNotificationSettings] =
     useState(notificationSettings);
 
+  // Local branding settings state — safe splash fallback prevents crashes
+  const [localBrandingSettings, setLocalBrandingSettings] = useState({
+    splash: systemSettings?.splash || { logoUrl: '', backgroundColor: '#0F172A' },
+    featureFlags: systemSettings?.featureFlags || {
+      enableWallet: false,
+      enableReferrals: false,
+      enableNewUI: false,
+      seasonalMode: false,
+      enableProviderChat: false,
+    },
+  });
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
   // Initialize profile form when admin profile loads
   useEffect(() => {
     if (adminProfile) {
@@ -113,6 +127,14 @@ const SettingsPage = () => {
     setLocalSystemSettings(systemSettings);
     setLocalBillingSettings(billingSettings);
     setLocalNotificationSettings(notificationSettings);
+    // Sync branding — keep safe defaults so splash is never undefined
+    setLocalBrandingSettings({
+      splash: systemSettings?.splash || { logoUrl: '', backgroundColor: '#0F172A' },
+      featureFlags: systemSettings?.featureFlags || {
+        enableWallet: false, enableReferrals: false, enableNewUI: false,
+        seasonalMode: false, enableProviderChat: false,
+      },
+    });
   }, [systemSettings, billingSettings, notificationSettings]);
 
   // Clear success messages after 3 seconds
@@ -202,6 +224,36 @@ const SettingsPage = () => {
     }
   };
 
+  // Handle branding settings save — dispatches splash + featureFlags together
+  const handleBrandingSettingsSave = async () => {
+    try {
+      await dispatch(updateSystemSettings({
+        splash: localBrandingSettings.splash,
+        featureFlags: localBrandingSettings.featureFlags,
+      })).unwrap();
+    } catch (error) {
+      console.error("Failed to update branding settings:", error);
+    }
+  };
+
+  // Handle logo file selection → upload to Cloudinary → store URL in state
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingLogo(true);
+    try {
+      const secureUrl = await uploadToCloudinary(file, { folder: 'splash_logos' });
+      setLocalBrandingSettings((prev) => ({
+        ...prev,
+        splash: { ...prev.splash, logoUrl: secureUrl },
+      }));
+    } catch (err) {
+      console.error('Logo upload failed:', err);
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
   const handleAddFee = () => {
     setLocalBillingSettings({
       ...localBillingSettings,
@@ -277,6 +329,7 @@ const SettingsPage = () => {
           <Tab label="System" icon={<SettingsIcon />} />
           <Tab label="Billing" icon={<PaymentsIcon />} />
           <Tab label="Notifications" icon={<NotificationIcon />} />
+          <Tab label="Branding" icon={<PhoneIphoneIcon />} />
         </Tabs>
       </Card>
 
@@ -993,6 +1046,216 @@ const SettingsPage = () => {
                   </Button>
                 </Box>
               </Grid>
+            </Grid>
+          </Box>
+        </Card>
+      )}
+
+      {/* ── Branding Tab (index 5) ─────────────────────────────────── */}
+      {tabValue === 5 && (
+        <Card>
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              Mobile App Branding
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Controls the splash screen logo and background colour shown when the
+              mobile app boots. Changes take effect on the next app launch.
+            </Typography>
+
+            <Grid container spacing={3}>
+
+              {/* ── Left: Upload & Colour controls ─────────────── */}
+              <Grid item xs={12} md={7}>
+
+                {/* Logo Upload */}
+                <Paper sx={{ p: 3, mb: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    Splash Logo
+                  </Typography>
+
+                  <Box sx={{ mb: 2 }}>
+                    <Button
+                      variant="outlined"
+                      component="label"
+                      startIcon={
+                        isUploadingLogo
+                          ? <CircularProgress size={18} />
+                          : <CloudUploadIcon />
+                      }
+                      disabled={isUploadingLogo}
+                    >
+                      {isUploadingLogo ? 'Uploading…' : 'Upload Logo to Cloudinary'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={handleLogoUpload}
+                      />
+                    </Button>
+                    <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
+                      PNG/SVG recommended. Transparent background works best on dark splash screens.
+                    </Typography>
+                  </Box>
+
+                  {/* URL override / manual entry */}
+                  <TextField
+                    fullWidth
+                    label="Logo URL (Cloudinary URL)"
+                    placeholder="https://res.cloudinary.com/…"
+                    value={localBrandingSettings.splash.logoUrl}
+                    onChange={(e) =>
+                      setLocalBrandingSettings((prev) => ({
+                        ...prev,
+                        splash: { ...prev.splash, logoUrl: e.target.value },
+                      }))
+                    }
+                    helperText="Auto-filled on upload. You can also paste a URL directly."
+                    size="small"
+                  />
+                </Paper>
+
+                {/* Background Color */}
+                <Paper sx={{ p: 3, mb: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    Splash Background Color
+                  </Typography>
+                  <Box display="flex" alignItems="center" gap={2}>
+                    <Box
+                      component="input"
+                      type="color"
+                      value={localBrandingSettings.splash.backgroundColor}
+                      onChange={(e) =>
+                        setLocalBrandingSettings((prev) => ({
+                          ...prev,
+                          splash: { ...prev.splash, backgroundColor: e.target.value },
+                        }))
+                      }
+                      sx={{
+                        width: 48, height: 48, border: 'none', cursor: 'pointer',
+                        borderRadius: 1, p: 0.5, bgcolor: 'transparent',
+                      }}
+                    />
+                    <TextField
+                      label="Hex Color"
+                      value={localBrandingSettings.splash.backgroundColor}
+                      onChange={(e) =>
+                        setLocalBrandingSettings((prev) => ({
+                          ...prev,
+                          splash: { ...prev.splash, backgroundColor: e.target.value },
+                        }))
+                      }
+                      size="small"
+                      sx={{ width: 160 }}
+                      inputProps={{ maxLength: 7 }}
+                    />
+                    <Typography variant="caption" color="text.secondary">
+                      This is the outer gradient stop colour on the mobile splash screen.
+                    </Typography>
+                  </Box>
+                </Paper>
+
+                {/* Feature Flags */}
+                <Paper sx={{ p: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                    Feature Flags
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                    Toggle these to remotely enable or disable features in the mobile app.
+                  </Typography>
+                  <List dense>
+                    {[
+                      { key: 'enableWallet',       label: 'Wallet',        desc: 'In-app wallet & balance top-up' },
+                      { key: 'enableReferrals',    label: 'Referrals',     desc: 'Referral codes & rewards' },
+                      { key: 'enableNewUI',        label: 'New UI',        desc: 'Enable redesigned home screen layout' },
+                      { key: 'seasonalMode',       label: 'Seasonal Mode', desc: 'Show seasonal promotions & banners' },
+                      { key: 'enableProviderChat', label: 'Provider Chat', desc: 'In-app chat with service providers' },
+                    ].map(({ key, label, desc }) => (
+                      <ListItem key={key} disableGutters>
+                        <ListItemText primary={label} secondary={desc} />
+                        <ListItemSecondaryAction>
+                          <Switch
+                            checked={localBrandingSettings.featureFlags[key] ?? false}
+                            onChange={(e) =>
+                              setLocalBrandingSettings((prev) => ({
+                                ...prev,
+                                featureFlags: { ...prev.featureFlags, [key]: e.target.checked },
+                              }))
+                            }
+                            color="primary"
+                          />
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Paper>
+              </Grid>
+
+              {/* ── Right: Live Preview ─────────────────────────── */}
+              <Grid item xs={12} md={5}>
+                <Paper sx={{ p: 3, position: 'sticky', top: 80 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    Live Preview
+                  </Typography>
+                  {/* Phone shell */}
+                  <Box
+                    sx={{
+                      mx: 'auto',
+                      width: 200,
+                      height: 380,
+                      borderRadius: 6,
+                      border: '6px solid',
+                      borderColor: 'grey.700',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: `linear-gradient(180deg, ${localBrandingSettings.splash.backgroundColor} 0%, #1E293B 50%, ${localBrandingSettings.splash.backgroundColor} 100%)`,
+                    }}
+                  >
+                    {localBrandingSettings.splash.logoUrl ? (
+                      <Box
+                        component="img"
+                        src={localBrandingSettings.splash.logoUrl}
+                        alt="Splash logo preview"
+                        sx={{ width: '65%', objectFit: 'contain', maxHeight: '40%' }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <Box textAlign="center">
+                        <PhoneIphoneIcon sx={{ fontSize: 40, color: 'grey.500' }} />
+                        <Typography variant="caption" color="grey.500" display="block">
+                          Upload a logo to preview
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" display="block" align="center" sx={{ mt: 1.5 }}>
+                    Simulated splash screen — gradient matches the mobile app.
+                  </Typography>
+                </Paper>
+              </Grid>
+
+              {/* Save button */}
+              <Grid item xs={12}>
+                <Box display="flex" justifyContent="flex-end">
+                  <Button
+                    variant="contained"
+                    onClick={handleBrandingSettingsSave}
+                    startIcon={
+                      loading.savingSettings
+                        ? <CircularProgress size={20} />
+                        : <SaveIcon />
+                    }
+                    disabled={loading.savingSettings || isUploadingLogo}
+                    size="large"
+                    sx={{ px: 4 }}
+                  >
+                    {loading.savingSettings ? 'Saving…' : 'Save Branding Settings'}
+                  </Button>
+                </Box>
+              </Grid>
+
             </Grid>
           </Box>
         </Card>
