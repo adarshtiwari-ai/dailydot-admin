@@ -230,6 +230,13 @@ const settingsSlice = createSlice({
           state.systemSettings = action.payload.data.system;
           state.notificationSettings = action.payload.data.notifications;
           state.billingSettings = action.payload.data.billing || initialState.billingSettings;
+          // Sync branding fields into systemSettings so the Branding tab reads live DB values
+          if (action.payload.data.splash) {
+            state.systemSettings.splash = action.payload.data.splash;
+          }
+          if (action.payload.data.featureFlags) {
+            state.systemSettings.featureFlags = action.payload.data.featureFlags;
+          }
         }
       })
       .addCase(getSettings.rejected, (state, action) => {
@@ -255,6 +262,13 @@ const settingsSlice = createSlice({
           }
           if (action.payload.data.notifications) {
             state.notificationSettings = action.payload.data.notifications;
+          }
+          // Immediately reflect saved branding back into Redux — prevents tab reset on re-render
+          if (action.payload?.data?.splash) {
+            state.systemSettings.splash = action.payload.data.splash;
+          }
+          if (action.payload?.data?.featureFlags) {
+            state.systemSettings.featureFlags = action.payload.data.featureFlags;
           }
         }
       })
