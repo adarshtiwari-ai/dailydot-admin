@@ -26,6 +26,7 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   Chip,
+  Slider,
 } from "@mui/material";
 import {
   Person as PersonIcon,
@@ -95,7 +96,13 @@ const SettingsPage = () => {
   // Local branding settings state — safe splash fallback prevents crashes
   const [localBrandingSettings, setLocalBrandingSettings] = useState({
     splash: systemSettings?.splash || { logoUrl: '', backgroundColor: '#0F172A' },
-    homeScreen: systemSettings?.homeScreen || { heroBannerUrl: '' },
+    homeScreen: systemSettings?.homeScreen || { 
+      heroBannerUrl: '',
+      gradientTopColor: 'rgba(0,0,0,0.6)',
+      gradientMidColor: 'transparent',
+      gradientBottomColor: 'rgba(0,0,0,0.8)',
+      gradientOpacity: 1.0
+    },
     featureFlags: systemSettings?.featureFlags || {
       enableWallet: false,
       enableReferrals: false,
@@ -132,7 +139,13 @@ const SettingsPage = () => {
     // Sync branding — keep safe defaults so splash is never undefined
     setLocalBrandingSettings({
       splash: systemSettings?.splash || { logoUrl: '', backgroundColor: '#0F172A' },
-      homeScreen: systemSettings?.homeScreen || { heroBannerUrl: '' },
+      homeScreen: systemSettings?.homeScreen || { 
+        heroBannerUrl: '',
+        gradientTopColor: 'rgba(0,0,0,0.6)',
+        gradientMidColor: 'transparent',
+        gradientBottomColor: 'rgba(0,0,0,0.8)',
+        gradientOpacity: 1.0
+      },
       featureFlags: systemSettings?.featureFlags || {
         enableWallet: false, enableReferrals: false, enableNewUI: false,
         seasonalMode: false, enableProviderChat: false,
@@ -1193,6 +1206,95 @@ const SettingsPage = () => {
                       />
                     </Box>
                   )}
+
+                  {/* Hero Banner Gradient Controls */}
+                  <Typography variant="subtitle2" sx={{ mt: 3, mb: 1 }}>
+                    Banner Gradient Overlay
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={4}>
+                      <Typography variant="caption" display="block" sx={{ mb: 1 }}>Top Color</Typography>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Box
+                          component="input"
+                          type="color"
+                          value={localBrandingSettings.homeScreen.gradientTopColor?.startsWith('rgba') ? '#000000' : localBrandingSettings.homeScreen.gradientTopColor}
+                          onChange={(e) =>
+                            setLocalBrandingSettings((prev) => ({
+                              ...prev,
+                              homeScreen: { ...prev.homeScreen, gradientTopColor: e.target.value },
+                            }))
+                          }
+                          sx={{ width: 40, height: 40, border: '1px solid #ccc', cursor: 'pointer', p: 0, borderRadius: 1 }}
+                        />
+                        <TextField 
+                          size="small" 
+                          value={localBrandingSettings.homeScreen.gradientTopColor}
+                          onChange={(e) => setLocalBrandingSettings(prev => ({ ...prev, homeScreen: { ...prev.homeScreen, gradientTopColor: e.target.value } }))}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <Typography variant="caption" display="block" sx={{ mb: 1 }}>Middle Color</Typography>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Box
+                          component="input"
+                          type="color"
+                          value={localBrandingSettings.homeScreen.gradientMidColor === 'transparent' ? '#000000' : localBrandingSettings.homeScreen.gradientMidColor}
+                          onChange={(e) =>
+                            setLocalBrandingSettings((prev) => ({
+                              ...prev,
+                              homeScreen: { ...prev.homeScreen, gradientMidColor: e.target.value },
+                            }))
+                          }
+                          sx={{ width: 40, height: 40, border: '1px solid #ccc', cursor: 'pointer', p: 0, borderRadius: 1 }}
+                        />
+                        <TextField 
+                          size="small" 
+                          value={localBrandingSettings.homeScreen.gradientMidColor}
+                          onChange={(e) => setLocalBrandingSettings(prev => ({ ...prev, homeScreen: { ...prev.homeScreen, gradientMidColor: e.target.value } }))}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <Typography variant="caption" display="block" sx={{ mb: 1 }}>Bottom Color</Typography>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Box
+                          component="input"
+                          type="color"
+                          value={localBrandingSettings.homeScreen.gradientBottomColor?.startsWith('rgba') ? '#000000' : localBrandingSettings.homeScreen.gradientBottomColor}
+                          onChange={(e) =>
+                            setLocalBrandingSettings((prev) => ({
+                              ...prev,
+                              homeScreen: { ...prev.homeScreen, gradientBottomColor: e.target.value },
+                            }))
+                          }
+                          sx={{ width: 40, height: 40, border: '1px solid #ccc', cursor: 'pointer', p: 0, borderRadius: 1 }}
+                        />
+                        <TextField 
+                          size="small" 
+                          value={localBrandingSettings.homeScreen.gradientBottomColor}
+                          onChange={(e) => setLocalBrandingSettings(prev => ({ ...prev, homeScreen: { ...prev.homeScreen, gradientBottomColor: e.target.value } }))}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="caption" display="block" sx={{ mt: 1, mb: 1 }}>Gradient Opacity ({Math.round(localBrandingSettings.homeScreen.gradientOpacity * 100)}%)</Typography>
+                      <Slider
+                        value={localBrandingSettings.homeScreen.gradientOpacity}
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        onChange={(e, newValue) =>
+                          setLocalBrandingSettings((prev) => ({
+                            ...prev,
+                            homeScreen: { ...prev.homeScreen, gradientOpacity: newValue },
+                          }))
+                        }
+                        valueLabelDisplay="auto"
+                      />
+                    </Grid>
+                  </Grid>
                 </Paper>
 
                 {/* Background Color */}
