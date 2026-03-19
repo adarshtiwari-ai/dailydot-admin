@@ -114,6 +114,8 @@ const SettingsPage = () => {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
+  console.log("Vercel Webhook Test - Active");
+
   // Initialize profile form when admin profile loads
   useEffect(() => {
     if (adminProfile) {
