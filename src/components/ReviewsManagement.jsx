@@ -55,6 +55,9 @@ const ReviewsManagement = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [replyDialogOpen, setReplyDialogOpen] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [selectedReviewId, setSelectedReviewId] = useState(null);
 
   // Fetch reviews and stats when component loads
   useEffect(() => {
@@ -88,6 +91,27 @@ const ReviewsManagement = () => {
     if (window.confirm("Are you sure you want to delete this review?")) {
       dispatch(deleteReview(reviewId));
     }
+  };
+
+  const handleOpenReply = (review) => {
+    setSelectedReviewId(review._id);
+    setReplyText(review.adminResponse?.message || "");
+    setReplyDialogOpen(true);
+  };
+
+  const handleCloseReply = () => {
+    setReplyDialogOpen(false);
+    setReplyText("");
+    setSelectedReviewId(null);
+  };
+
+  const handleSubmitReply = () => {
+    if (replyText.trim().length < 10) {
+      alert("Response must be at least 10 characters long.");
+      return;
+    }
+    dispatch(respondToReview({ reviewId: selectedReviewId, message: replyText }));
+    handleCloseReply();
   };
 
   // Stats cards data
@@ -258,9 +282,17 @@ const ReviewsManagement = () => {
 
                     <Divider sx={{ my: 2 }} />
 
-                    <Typography variant="body1" sx={{ mb: 2 }}>
-                      {review.comment || "No comment provided"}
-                    </Typography>
+                    {/* Admin Response Section */}
+                    {review.adminResponse?.message && (
+                      <Box sx={{ mt: 2, mb: 2, p: 2, bgcolor: "#f5f5f5", borderRadius: 1, borderLeft: "4px solid #757575" }}>
+                        <Typography variant="caption" sx={{ fontWeight: "bold", color: "text.secondary" }}>
+                          Admin Response ({review.adminResponse.respondedAt ? new Date(review.adminResponse.respondedAt).toLocaleDateString() : "Date N/A"}):
+                        </Typography>
+                        <Typography variant="body2" sx={{ mt: 0.5 }}>
+                          {review.adminResponse.message}
+                        </Typography>
+                      </Box>
+                    )}
 
                     <Box display="flex" justifyContent="space-between" alignItems="center">
                       <Box display="flex" gap={1} alignItems="center">
@@ -270,12 +302,17 @@ const ReviewsManagement = () => {
                           size="small"
                         />
                         {review.bookingId && (
-                          <Chip label={`Booking: ${review.bookingId.bookingNumber || str(review.bookingId).slice(-6)}`} variant="outlined" size="small" />
+                          <Chip 
+                            label={`Booking: ${typeof review.bookingId === 'object' ? review.bookingId.bookingNumber : String(review.bookingId).slice(-6)}`} 
+                            variant="outlined" 
+                            size="small" 
+                          />
                         )}
                       </Box>
 
                       <Box>
-                        {review.status === 'pending' || review.status === 'rejected' ? (
+                        {/* Moderation Toggles */}
+                        {review.status !== 'approved' && (
                           <Button
                             size="small"
                             variant="contained"
@@ -286,9 +323,9 @@ const ReviewsManagement = () => {
                           >
                             Approve
                           </Button>
-                        ) : null}
+                        )}
 
-                        {review.status === 'pending' || review.status === 'approved' ? (
+                        {review.status !== 'rejected' && (
                           <Button
                             size="small"
                             variant="outlined"
@@ -299,7 +336,19 @@ const ReviewsManagement = () => {
                           >
                             Reject
                           </Button>
-                        ) : null}
+                        )}
+
+                        {/* Reply Button */}
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          startIcon={<ReviewIcon />}
+                          onClick={() => handleOpenReply(review)}
+                          sx={{ mr: 1 }}
+                        >
+                          {review.adminResponse?.message ? "Edit Reply" : "Reply"}
+                        </Button>
 
                         <Button
                           size="small"
@@ -319,6 +368,39 @@ const ReviewsManagement = () => {
           )}
         </Box>
       </Card>
+
+      {/* Reply Dialog */}
+      <Dialog open={replyDialogOpen} onClose={handleCloseReply} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {replyText ? "Edit Response" : "Public Response to Review"}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Your response will be visible to all users on the mobile app.
+          </Typography>
+          <TextField
+            autoFocus
+            multiline
+            rows={4}
+            fullWidth
+            variant="outlined"
+            placeholder="Type your response here (min 10 characters)..."
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseReply}>Cancel</Button>
+          <Button 
+            onClick={handleSubmitReply} 
+            variant="contained" 
+            color="primary"
+            disabled={replyText.trim().length < 10}
+          >
+            Submit Response
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
