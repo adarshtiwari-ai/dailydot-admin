@@ -70,6 +70,7 @@ const DecorGuruManagement = () => {
         exclusions: '',
         duration: '',
         category: '',
+        pricingUnit: 'fixed',
     });
     const [selectedImage, setSelectedImage] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -93,6 +94,7 @@ const DecorGuruManagement = () => {
                 exclusions: service.exclusions ? service.exclusions.join(', ') : '',
                 duration: service.duration,
                 category: service.category?._id || service.category || '',
+                pricingUnit: service.pricingUnit || 'fixed',
             });
             setImagePreview(service.images?.[0] || null);
             setSelectedImage(null);
@@ -108,6 +110,7 @@ const DecorGuruManagement = () => {
                 exclusions: '',
                 duration: '',
                 category: categories.length > 0 ? categories[0].id : '',
+                pricingUnit: 'fixed',
             });
             setImagePreview(null);
             setSelectedImage(null);
@@ -153,6 +156,7 @@ const DecorGuruManagement = () => {
                 duration: Number(formData.duration),
                 category: formData.category,
                 section: 'decor',
+                pricingUnit: formData.pricingUnit || 'fixed',
                 images: imagePreview ? [imagePreview] : []
             };
 
@@ -351,6 +355,19 @@ const DecorGuruManagement = () => {
                                     {cat.name}
                                 </MenuItem>
                             ))}
+                        </TextField>
+                        <TextField
+                            select
+                            label="Pricing Unit"
+                            name="pricingUnit"
+                            value={formData.pricingUnit || 'fixed'}
+                            onChange={handleInputChange}
+                            fullWidth
+                            required
+                        >
+                            <MenuItem value="fixed">Fixed Price</MenuItem>
+                            <MenuItem value="hourly">Per Hour</MenuItem>
+                            <MenuItem value="sq_ft">Per Sq. Ft.</MenuItem>
                         </TextField>
                         <Box display="flex" gap={2}>
                             <TextField

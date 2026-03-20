@@ -78,6 +78,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
     images: [""],
     isActive: true,
     isStartingPrice: false,
+    pricingUnit: "fixed",
   });
 
   const [isUploading, setIsUploading] = useState(false);
@@ -128,6 +129,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         isActive: service.isActive !== false,
         tagId: service.tagId || "",
         isStartingPrice: service.isStartingPrice || false,
+        pricingUnit: service.pricingUnit || "fixed",
       });
     } else {
       setSelectedService(null);
@@ -143,6 +145,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         isActive: true,
         tagId: "",
         isStartingPrice: false,
+        pricingUnit: "fixed",
       });
     }
     setOpenDialog(true);
@@ -163,6 +166,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
       isActive: true,
       tagId: "",
       isStartingPrice: false,
+      pricingUnit: "fixed",
     });
   };
 
@@ -228,6 +232,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         tagId: serviceForm.tagId,
         isActive: serviceForm.isActive,
         isStartingPrice: serviceForm.isStartingPrice,
+        pricingUnit: serviceForm.pricingUnit,
         category: categoryId
       };
 
@@ -700,6 +705,20 @@ const CategoryServicesManagement = ({ category, onBack }) => {
                 />
               </Grid>
             </Grid>
+
+            {/* PRICING UNIT SELECTION */}
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Pricing Unit</InputLabel>
+              <Select
+                value={serviceForm.pricingUnit || "fixed"}
+                label="Pricing Unit"
+                onChange={(e) => setServiceForm({ ...serviceForm, pricingUnit: e.target.value })}
+              >
+                <MenuItem value="fixed">Fixed Price</MenuItem>
+                <MenuItem value="hourly">Per Hour</MenuItem>
+                <MenuItem value="sq_ft">Per Sq. Ft.</MenuItem>
+              </Select>
+            </FormControl>
 
             {/* TAG SELECTION */}
             {category?.tags && category.tags.length > 0 && (
