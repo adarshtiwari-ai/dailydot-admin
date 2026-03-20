@@ -25,10 +25,12 @@ import {
   MenuItem,
   InputLabel,
   FormControl,
+  Autocomplete,
 } from "@mui/material";
 import TextField from "@mui/material/TextField";
 import BookingAdjustmentModal from "./BookingAdjustmentModal";
 import { formatCurrency } from "../utils/currency";
+import axiosInstance from "../services/api.service";
 
 // Import the Redux actions we just created
 import {
@@ -51,6 +53,8 @@ const BookingsManagement = () => {
   const [status, setStatus] = useState("");
   const [proName, setProName] = useState("");
   const [proPhone, setProPhone] = useState("");
+  const [availablePros, setAvailablePros] = useState([]);
+  const [fetchingPros, setFetchingPros] = useState(false);
   const [materialName, setMaterialName] = useState("");
   const [materialCost, setMaterialCost] = useState("");
   const [customDiscountName, setCustomDiscountName] = useState("");
@@ -59,7 +63,22 @@ const BookingsManagement = () => {
   // Fetch bookings when component loads
   useEffect(() => {
     dispatch(fetchBookings());
+    fetchAvailablePros();
   }, [dispatch]);
+
+  const fetchAvailablePros = async () => {
+    try {
+      setFetchingPros(true);
+      const response = await axiosInstance.get("/professionals");
+      if (response.data.success) {
+        setAvailablePros(response.data.professionals || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch professionals:", err);
+    } finally {
+      setFetchingPros(false);
+    }
+  };
 
   const handleOpenDialog = (booking) => {
     console.log("Opening Dialog for:", booking._id || booking.id);
@@ -496,13 +515,29 @@ const BookingsManagement = () => {
                     </Typography>
                     <Grid container spacing={2}>
                       <Grid item xs={12} md={6}>
-                        <TextField
+                        <Autocomplete
                           fullWidth
-                          label="Professional Name"
-                          size="small"
+                          freeSolo
+                          options={availablePros}
+                          getOptionLabel={(option) => typeof option === 'string' ? option : option.name}
                           value={proName}
-                          onChange={(e) => setProName(e.target.value)}
-                          placeholder="e.g. John Doe"
+                          onInputChange={(event, newInputValue) => {
+                            setProName(newInputValue);
+                          }}
+                          onChange={(event, newValue) => {
+                            if (newValue && typeof newValue === 'object') {
+                              setProName(newValue.name);
+                              setProPhone(newValue.phone || "");
+                            }
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Professional Name"
+                              size="small"
+                              placeholder="Select or type new name"
+                            />
+                          )}
                         />
                       </Grid>
                       <Grid item xs={12} md={6}>

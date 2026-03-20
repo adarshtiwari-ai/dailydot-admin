@@ -24,7 +24,8 @@ import {
     Switch,
     Alert
 } from "@mui/material";
-import { Edit as EditIcon } from "@mui/icons-material";
+import { Edit as EditIcon, CloudUpload as CloudUploadIcon } from "@mui/icons-material";
+import { uploadToCloudinary } from "../utils/uploadToCloudinary";
 
 const ProfessionalsManagement = () => {
     const [professionals, setProfessionals] = useState([]);
@@ -34,8 +35,15 @@ const ProfessionalsManagement = () => {
     // Dialog State
     const [openDialog, setOpenDialog] = useState(false);
     const [currentPro, setCurrentPro] = useState(null);
-    const [formData, setFormData] = useState({ name: "", isActive: true });
+    const [formData, setFormData] = useState({ 
+        name: "", 
+        email: "", 
+        bio: "", 
+        photo: "", 
+        isActive: true 
+    });
     const [updateLoading, setUpdateLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
     const fetchProfessionals = async () => {
         try {
@@ -58,8 +66,11 @@ const ProfessionalsManagement = () => {
     const handleEditClick = (pro) => {
         setCurrentPro(pro);
         setFormData({
-            name: pro.name,
-            isActive: pro.isActive
+            name: pro.name || "",
+            email: pro.email || "",
+            bio: pro.bio || "",
+            photo: pro.photo || "",
+            isActive: typeof pro.isActive !== 'undefined' ? pro.isActive : true
         });
         setOpenDialog(true);
     };
@@ -67,6 +78,22 @@ const ProfessionalsManagement = () => {
     const handleCloseDialog = () => {
         setOpenDialog(false);
         setCurrentPro(null);
+    };
+
+    const handlePhotoUpload = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        try {
+            setUploading(true);
+            const imageUrl = await uploadToCloudinary(file);
+            setFormData(prev => ({ ...prev, photo: imageUrl }));
+        } catch (err) {
+            console.error("Photo upload failed:", err);
+            alert("Failed to upload image. Please try again.");
+        } finally {
+            setUploading(false);
+        }
     };
 
     const handleUpdate = async () => {
@@ -166,16 +193,55 @@ const ProfessionalsManagement = () => {
             </Card>
 
             {/* Edit Dialog */}
-            <Dialog open={openDialog} onClose={handleCloseDialog}>
-                <DialogTitle>Edit Professional</DialogTitle>
+            <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+                <DialogTitle>Edit Professional Profile</DialogTitle>
                 <DialogContent dividers>
-                    <Box sx={{ pt: 1 }}>
+                    <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {/* Profile Photo Section */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                            <Box
+                                component="img"
+                                src={formData.photo || "https://res.cloudinary.com/dpqp3i1su/image/upload/v1710526000/placeholder_user.png"}
+                                sx={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '2px solid #eee' }}
+                            />
+                            <Button
+                                variant="outlined"
+                                component="label"
+                                startIcon={uploading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
+                                disabled={uploading}
+                            >
+                                {uploading ? "Uploading..." : "Upload Photo"}
+                                <input
+                                    type="file"
+                                    hidden
+                                    accept="image/*"
+                                    onChange={handlePhotoUpload}
+                                />
+                            </Button>
+                        </Box>
+
                         <TextField
                             fullWidth
-                            label="Name"
+                            label="Full Name"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            sx={{ mb: 3 }}
+                        />
+
+                        <TextField
+                            fullWidth
+                            label="Email Address"
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        />
+
+                        <TextField
+                            fullWidth
+                            label="Short Bio / Description"
+                            multiline
+                            rows={3}
+                            value={formData.bio}
+                            onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                         />
 
                         <FormControlLabel
@@ -195,7 +261,7 @@ const ProfessionalsManagement = () => {
                     <Button
                         onClick={handleUpdate}
                         variant="contained"
-                        disabled={updateLoading || !formData.name}
+                        disabled={updateLoading || uploading || !formData.name}
                     >
                         {updateLoading ? "Saving..." : "Save Changes"}
                     </Button>
