@@ -16,6 +16,8 @@ import PushNotificationsManagement from "./PushNotificationsManagement";
 import PromotionsManagement from "./PromotionsManagement";
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import {
   Box,
   Drawer,
@@ -793,6 +795,7 @@ const CompleteDashboard = () => {
           Logout
         </MenuItem>
       </Menu>
+      <ToastContainer position="bottom-right" autoClose={3000} />
     </Box>
   );
 };

@@ -41,6 +41,7 @@ import {
   updateCategory,
   deleteCategory,
 } from "../../store/slices/categoriesSlice";
+import { toast } from "react-toastify";
 
 const CategoriesDashboard = ({ onViewCategory }) => {
   const dispatch = useDispatch();
@@ -59,6 +60,7 @@ const CategoriesDashboard = ({ onViewCategory }) => {
     icon: "",
     image: "",
     isActive: true,
+    showOnHome: true,
     sortOrder: 0,
     tags: [],
     newTagName: "",
@@ -111,6 +113,7 @@ const CategoriesDashboard = ({ onViewCategory }) => {
         icon: category.icon || "",
         image: category.image || "",
         isActive: category.isActive !== false,
+        showOnHome: category.showOnHome !== false,
         sortOrder: category.sortOrder || 0,
         tags: category.tags || [],
         newTagName: "",
@@ -126,6 +129,7 @@ const CategoriesDashboard = ({ onViewCategory }) => {
         icon: "",
         image: "",
         isActive: true,
+        showOnHome: true,
         sortOrder: 0,
         tags: [],
         newTagName: "",
@@ -146,6 +150,7 @@ const CategoriesDashboard = ({ onViewCategory }) => {
       icon: "",
       image: "",
       isActive: true,
+      showOnHome: true,
       sortOrder: 0,
       tags: [],
       newTagName: "",
@@ -211,7 +216,7 @@ const CategoriesDashboard = ({ onViewCategory }) => {
   const handleSaveCategory = async () => {
     try {
       if (!formData.name.trim()) {
-        alert("Category name is required");
+        toast.error("Category name is required");
         return;
       }
 
@@ -220,6 +225,7 @@ const CategoriesDashboard = ({ onViewCategory }) => {
       categoryFormData.append("slug", formData.slug.trim() || generateSlug(formData.name));
       categoryFormData.append("description", formData.description.trim());
       categoryFormData.append("isActive", formData.isActive);
+      categoryFormData.append("showOnHome", formData.showOnHome);
       categoryFormData.append("sortOrder", formData.sortOrder || 0);
 
       // Append tags and their icons
@@ -277,16 +283,16 @@ const CategoriesDashboard = ({ onViewCategory }) => {
             data: categoryFormData,
           })
         ).unwrap();
-        alert("Category updated successfully!");
+        toast.success("Category updated successfully!");
       } else {
         await dispatch(createCategory(categoryFormData)).unwrap();
-        alert("Category created successfully!");
+        toast.success("Category created successfully!");
       }
 
       handleCloseDialog();
     } catch (error) {
       console.error("Error saving category:", error);
-      alert(`Error: ${error.message || error}`);
+      toast.error(error?.message || error || "Failed to save category");
     }
   };
 
@@ -294,10 +300,10 @@ const CategoriesDashboard = ({ onViewCategory }) => {
     if (window.confirm(`Are you sure you want to delete category "${name}"?`)) {
       try {
         await dispatch(deleteCategory(id)).unwrap();
-        alert('Category deleted successfully');
+        toast.success('Category deleted successfully');
       } catch (error) {
         console.error('Delete error:', error);
-        alert('Failed to delete category');
+        toast.error('Failed to delete category');
       }
     }
   };
@@ -707,18 +713,31 @@ const CategoriesDashboard = ({ onViewCategory }) => {
               helperText="Display order (0 = first)"
             />
 
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.isActive}
-                  onChange={(e) =>
-                    setFormData({ ...formData, isActive: e.target.checked })
-                  }
-                />
-              }
-              label="Active Category"
-              sx={{ mt: 2 }}
-            />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.isActive}
+                    onChange={(e) =>
+                      setFormData({ ...formData, isActive: e.target.checked })
+                    }
+                  />
+                }
+                label="Active Category"
+                sx={{ mt: 2 }}
+              />
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.showOnHome}
+                    onChange={(e) =>
+                      setFormData({ ...formData, showOnHome: e.target.checked })
+                    }
+                  />
+                }
+                label="Show on Home Screen"
+                sx={{ mt: 2, ml: 2 }}
+              />
           </Box>
         </DialogContent>
         <DialogActions>
