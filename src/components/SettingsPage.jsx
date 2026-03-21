@@ -27,6 +27,7 @@ import {
   ListItemSecondaryAction,
   Chip,
   Slider,
+  IconButton,
 } from "@mui/material";
 import {
   Person as PersonIcon,
@@ -38,6 +39,7 @@ import {
   Payments as PaymentsIcon,
   PhoneIphone as PhoneIphoneIcon,
   CloudUpload as CloudUploadIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
 
 // Import Redux actions
