@@ -760,14 +760,27 @@ const SettingsPage = () => {
                     <Typography variant="subtitle1">
                       Platform & Global Fees
                     </Typography>
-                    <Button 
-                      variant="outlined" 
-                      startIcon={<PaymentsIcon />} 
-                      onClick={handleAddFee}
-                      size="small"
-                    >
-                      Add Custom Fee
-                    </Button>
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                      <TextField
+                        label="Default Tax Rate (%)"
+                        type="number"
+                        size="small"
+                        value={(localBillingSettings.defaultTaxRate || 0.18) * 100}
+                        onChange={(e) => setLocalBillingSettings({
+                          ...localBillingSettings,
+                          defaultTaxRate: Number(e.target.value) / 100
+                        })}
+                        sx={{ width: 150 }}
+                      />
+                      <Button 
+                        variant="outlined" 
+                        startIcon={<PaymentsIcon />} 
+                        onClick={handleAddFee}
+                        size="small"
+                      >
+                        Add Custom Fee
+                      </Button>
+                    </Box>
                   </Box>
 
                   <List>
