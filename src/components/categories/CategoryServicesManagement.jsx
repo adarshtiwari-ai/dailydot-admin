@@ -79,6 +79,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
     isActive: true,
     isStartingPrice: false,
     pricingUnit: "fixed",
+    searchTags: "",
   });
 
   const [isUploading, setIsUploading] = useState(false);
@@ -130,6 +131,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         tagId: service.tagId || "",
         isStartingPrice: service.isStartingPrice || false,
         pricingUnit: service.pricingUnit || "fixed",
+        searchTags: service.searchTags && Array.isArray(service.searchTags) ? service.searchTags.join(', ') : "",
       });
     } else {
       setSelectedService(null);
@@ -146,6 +148,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         tagId: "",
         isStartingPrice: false,
         pricingUnit: "fixed",
+        searchTags: "",
       });
     }
     setOpenDialog(true);
@@ -167,6 +170,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
       tagId: "",
       isStartingPrice: false,
       pricingUnit: "fixed",
+      searchTags: "",
     });
   };
 
@@ -233,6 +237,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         isActive: serviceForm.isActive,
         isStartingPrice: serviceForm.isStartingPrice,
         pricingUnit: serviceForm.pricingUnit,
+        searchTags: serviceForm.searchTags ? serviceForm.searchTags.split(',').map(tag => tag.trim()).filter(tag => tag !== '') : [],
         category: categoryId
       };
 
@@ -705,6 +710,20 @@ const CategoryServicesManagement = ({ category, onBack }) => {
                 />
               </Grid>
             </Grid>
+            
+            <TextField
+              fullWidth
+              label="Search Keywords (Tags)"
+              name="searchTags"
+              value={serviceForm.searchTags}
+              onChange={(e) =>
+                setServiceForm({ ...serviceForm, searchTags: e.target.value })
+              }
+              margin="normal"
+              multiline
+              rows={2}
+              helperText="Enter comma-separated hidden keywords for predictive search (e.g., leak, pipe, water)"
+            />
 
             {/* PRICING UNIT SELECTION */}
             <FormControl fullWidth margin="normal">
