@@ -632,60 +632,80 @@ const BookingsManagement = () => {
 
               {/* Native Itemized Billing Breakdown (Vercel-Safe) */}
               <Grid item xs={12}>
-                <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb', marginTop: '16px', color: '#1f2937', fontFamily: 'sans-serif' }}>
-                  <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '1.1rem', color: '#111827' }}>Billing Breakdown</h3>
+                <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', marginTop: '16px', color: '#1f2937', fontFamily: 'sans-serif' }}>
+                  <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#111827' }}>Customer Bill Breakdown</h3>
                   
-                  {/* Services */}
+                  {/* Services (Base Cost) */}
                   {selectedBooking.items && selectedBooking.items.map((item, idx) => (
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
-                      <span>{item.name || item.serviceId?.name} (x{item.quantity || 1})</span>
-                      <span>₹{formatCurrency(item.price * (item.quantity || 1))}</span>
+                      <span>{item.name || item.serviceId?.name || "Service Item"} (x{item.quantity || 1})</span>
+                      <span>₹{formatCurrency((item.price || 0) * (item.quantity || 1))}</span>
                     </div>
                   ))}
 
-                  {/* Materials */}
-                  {(selectedBooking.materialCost > 0) && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem', color: '#d97706' }}>
-                      <span>Material Costs</span>
-                      <span>₹{formatCurrency(selectedBooking.materialCost)}</span>
+                  {/* Dynamic Materials */}
+                  {selectedBooking.materials && selectedBooking.materials.length > 0 && selectedBooking.materials.map((mat, idx) => (
+                    <div key={`mat-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem', color: '#d97706' }}>
+                      <span>+ {mat.name}</span>
+                      <span>₹{formatCurrency(mat.cost)}</span>
                     </div>
-                  )}
+                  ))}
 
-                  {/* Taxes & Fees */}
-                  {selectedBooking.taxDetails && (
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280' }}>
-                        <span>CGST (9%)</span>
-                        <span>₹{formatCurrency(selectedBooking.taxDetails.cgst)}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280' }}>
-                        <span>SGST (9%)</span>
-                        <span>₹{formatCurrency(selectedBooking.taxDetails.sgst)}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem', color: '#6b7280' }}>
-                        <span>Platform Fee</span>
-                        <span>₹{formatCurrency(selectedBooking.taxDetails.platformFee)}</span>
-                      </div>
-                    </>
-                  )}
+                  {/* Dynamic Fees */}
+                  {selectedBooking.appliedFees && selectedBooking.appliedFees.length > 0 && selectedBooking.appliedFees.map((fee, idx) => (
+                    <div key={`fee-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280' }}>
+                      <span>{fee.name}</span>
+                      <span>₹{formatCurrency(fee.amount)}</span>
+                    </div>
+                  ))}
 
-                  <hr style={{ border: 0, borderTop: '1px solid #e5e7eb', margin: '12px 0' }} />
+                  {/* Dynamic Discounts */}
+                  {selectedBooking.appliedDiscounts && selectedBooking.appliedDiscounts.length > 0 && selectedBooking.appliedDiscounts.map((discount, idx) => (
+                    <div key={`disc-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#ef4444', fontWeight: 'bold' }}>
+                      <span>{discount.name}</span>
+                      <span>- ₹{formatCurrency(Math.abs(discount.amount))}</span>
+                    </div>
+                  ))}
+
+                  {/* Dynamic Adjustments */}
+                  {selectedBooking.adjustments && selectedBooking.adjustments.length > 0 && selectedBooking.adjustments.map((adj, idx) => (
+                    <div key={`adj-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280', fontStyle: 'italic' }}>
+                      <span>Adjustment: {adj.reason}</span>
+                      <span>{adj.amount > 0 ? "+" : ""} ₹{formatCurrency(adj.amount)}</span>
+                    </div>
+                  ))}
+
+                  <hr style={{ margin: '12px 0', borderColor: '#d1d5db', border: '0', borderTop: '1px solid #d1d5db' }} />
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.2rem', color: '#111827' }}>
                     <span>Grand Total</span>
                     <span>₹{formatCurrency(selectedBooking.finalTotal || selectedBooking.totalAmount || selectedBooking.totalPrice)}</span>
                   </div>
 
-                  {/* Admin P&L Section (Settled Bookings Only) */}
+                  {/* Admin P&L Ledger (Internal Only) */}
                   {selectedBooking.isSettled && (
-                    <div style={{ backgroundColor: '#ecfdf5', padding: '12px', borderRadius: '6px', marginTop: '16px', border: '1px solid #10b981' }}>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: '#065f46' }}>
-                        <span style={{ fontWeight: '600' }}>Admin Commission (Net Profit)</span>
-                        <span>₹{formatCurrency(selectedBooking.netPlatformProfit)}</span>
+                    <div style={{ padding: '12px', backgroundColor: '#ecfdf5', borderRadius: '6px', marginTop: '16px', border: '1px solid #10b981' }}>
+                      <h4 style={{ margin: '0 0 8px 0', color: '#065f46', fontSize: '0.95rem' }}>Internal Admin Ledger</h4>
+                      
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: '#065f46' }}>
+                        <span>Internal Material Cost</span>
+                        <span>₹{formatCurrency(selectedBooking.materialCost || 0)}</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#065f46' }}>
-                        <span style={{ fontWeight: '600' }}>Provider Payout</span>
-                        <span>₹{formatCurrency((selectedBooking.finalTotal || selectedBooking.totalAmount) - (selectedBooking.materialCost || 0) - (selectedBooking.netPlatformProfit || 0))}</span>
+                      
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: '#065f46' }}>
+                        <span style={{ fontWeight: '600' }}>Platform Profit</span>
+                        <span>₹{formatCurrency(selectedBooking.netPlatformProfit || selectedBooking.adminCommission || 0)}</span>
+                      </div>
+                      
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#065f46', borderTop: '1px dashed #10b981', paddingTop: '4px', marginTop: '4px' }}>
+                        <span style={{ fontWeight: 'bold' }}>Provider Payout</span>
+                        <span style={{ fontWeight: 'bold' }}>
+                          ₹{formatCurrency(
+                            (selectedBooking.finalTotal || selectedBooking.totalAmount || selectedBooking.totalPrice || 0) - 
+                            (selectedBooking.materialCost || 0) - 
+                            (selectedBooking.netPlatformProfit || selectedBooking.adminCommission || 0)
+                          )}
+                        </span>
                       </div>
                     </div>
                   )}
