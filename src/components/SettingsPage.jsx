@@ -101,7 +101,8 @@ const SettingsPage = () => {
       gradientTopColor: 'rgba(0,0,0,0.6)',
       gradientMidColor: 'transparent',
       gradientBottomColor: 'rgba(0,0,0,0.8)',
-      gradientOpacity: 1.0
+      gradientOpacity: 1.0,
+      heroBanners: systemSettings?.homeScreen?.heroBanners || []
     },
     featureFlags: systemSettings?.featureFlags || {
       enableWallet: false,
@@ -146,7 +147,8 @@ const SettingsPage = () => {
         gradientTopColor: 'rgba(0,0,0,0.6)',
         gradientMidColor: 'transparent',
         gradientBottomColor: 'rgba(0,0,0,0.8)',
-        gradientOpacity: 1.0
+        gradientOpacity: 1.0,
+        heroBanners: systemSettings?.homeScreen?.heroBanners || []
       },
       featureFlags: systemSettings?.featureFlags || {
         enableWallet: false, enableReferrals: false, enableNewUI: false,
@@ -289,6 +291,35 @@ const SettingsPage = () => {
     } finally {
       setIsUploadingBanner(false);
     }
+  };
+
+  const handleHeroBannerUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingBanner(true);
+    try {
+      const secureUrl = await uploadToCloudinary(file, { folder: 'home_banners' });
+      setLocalBrandingSettings((prev) => ({
+        ...prev,
+        homeScreen: { 
+          ...prev.homeScreen, 
+          heroBanners: [...(prev.homeScreen.heroBanners || []), secureUrl] 
+        },
+      }));
+    } catch (err) {
+      console.error('Hero Banner upload failed:', err);
+    } finally {
+      setIsUploadingBanner(false);
+    }
+  };
+
+  const handleRemoveHeroBanner = (index) => {
+    const updatedBanners = [...(localBrandingSettings.homeScreen.heroBanners || [])];
+    updatedBanners.splice(index, 1);
+    setLocalBrandingSettings((prev) => ({
+      ...prev,
+      homeScreen: { ...prev.homeScreen, heroBanners: updatedBanners },
+    }));
   };
 
   const handleAddFee = () => {
@@ -1309,6 +1340,44 @@ const SettingsPage = () => {
                         valueLabelDisplay="auto"
                       />
                     </Grid>
+                  </Grid>
+                </Paper>
+
+                {/* Hero Banner Carousel Manager */}
+                <Paper sx={{ p: 3, mb: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    Hero Banner Carousel
+                  </Typography>
+                  <Box sx={{ mb: 3 }}>
+                    <Button
+                      variant="outlined"
+                      component="label"
+                      startIcon={isUploadingBanner ? <CircularProgress size={18} /> : <CloudUploadIcon />}
+                      disabled={isUploadingBanner}
+                    >
+                      {isUploadingBanner ? 'Uploading…' : 'Add Hero Image'}
+                      <input type="file" accept="image/*" hidden onChange={handleHeroBannerUpload} />
+                    </Button>
+                    <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
+                      Upload multiple images to create an auto-sliding carousel on the Home Screen.
+                    </Typography>
+                  </Box>
+
+                  <Grid container spacing={2}>
+                    {(localBrandingSettings.homeScreen.heroBanners || []).map((url, idx) => (
+                      <Grid item xs={6} sm={4} key={idx}>
+                        <Box sx={{ position: 'relative', width: '100%', pt: '56.25%', borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                          <Box component="img" src={url} sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleRemoveHeroBanner(idx)}
+                            sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'rgba(255,255,255,0.8)', '&:hover': { bgcolor: '#fff' } }}
+                          >
+                            <DeleteIcon fontSize="small" color="error" />
+                          </IconButton>
+                        </Box>
+                      </Grid>
+                    ))}
                   </Grid>
                 </Paper>
 
