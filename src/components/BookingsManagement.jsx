@@ -63,6 +63,7 @@ const BookingsManagement = () => {
   // Settlement Specific States
   const [settlementMaterialCost, setSettlementMaterialCost] = useState("");
   const [settlementAdminCommission, setSettlementAdminCommission] = useState("");
+  const [customTaxRate, setCustomTaxRate] = useState("18"); // Default 18%
 
   // Fetch bookings when component loads
   useEffect(() => {
@@ -96,6 +97,7 @@ const BookingsManagement = () => {
     setCustomDiscountAmount("");
     setSettlementMaterialCost("");
     setSettlementAdminCommission("");
+    setCustomTaxRate("18");
     setOpenDialog(true);
   };
 
@@ -114,7 +116,8 @@ const BookingsManagement = () => {
           proName: status === "confirmed" ? proName : undefined,
           proPhone: status === "confirmed" ? proPhone : undefined,
           materialCost: status === "completed" ? Math.round(Number(settlementMaterialCost) * 100) : undefined,
-          adminCommission: status === "completed" ? Math.round(Number(settlementAdminCommission) * 100) : undefined
+          adminCommission: status === "completed" ? Math.round(Number(settlementAdminCommission) * 100) : undefined,
+          taxAmount: status === "completed" ? Math.round(Number(selectedBooking.baseCost || selectedBooking.totalAmount) * (Number(customTaxRate) / 100)) : undefined
         })).unwrap();
         handleCloseDialog();
       } catch (err) {
@@ -596,15 +599,35 @@ const BookingsManagement = () => {
                         />
                       </Grid>
                       <Grid item xs={12} md={4}>
-                        <Box sx={{ p: 1, bgcolor: "white", borderRadius: 1, border: "1px solid #e2e8f0" }}>
-                          <Typography variant="caption" color="textSecondary">Live Payout Preview</Typography>
-                          <Typography variant="h6" color="primary.main">
-                            ₹{formatCurrency(
-                              (selectedBooking.finalTotal || selectedBooking.totalAmount || 0) - 
-                              (Number(settlementMaterialCost) || 0) - 
-                              (Number(settlementAdminCommission) || 0)
-                            )}
-                          </Typography>
+                        <TextField
+                          fullWidth
+                          label="Tax Rate (%)"
+                          size="small"
+                          type="number"
+                          value={customTaxRate}
+                          onChange={(e) => setCustomTaxRate(e.target.value)}
+                          placeholder="e.g. 18"
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={12}>
+                        <Box sx={{ p: 1, mt: 1, bgcolor: "white", borderRadius: 1, border: "1px solid #e2e8f0", display: 'flex', justifyContent: 'space-around' }}>
+                          <Box>
+                            <Typography variant="caption" color="textSecondary">Live Tax (Auto)</Typography>
+                            <Typography variant="subtitle1" fontWeight="bold">
+                              ₹{formatCurrency(Math.round(Number(selectedBooking.baseCost || selectedBooking.totalAmount) * (Number(customTaxRate) / 100)))}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="textSecondary">Live Payout Preview</Typography>
+                            <Typography variant="h6" color="primary.main">
+                              ₹{formatCurrency(
+                                (Number(selectedBooking.baseCost || 0)) + 
+                                (Math.round(Number(selectedBooking.baseCost) * (Number(customTaxRate) / 100))) +
+                                (Number(selectedBooking.totalDynamicFees) || 0) -
+                                (Math.round(Number(settlementAdminCommission) * 100) || 0)
+                              )}
+                            </Typography>
+                          </Box>
                         </Box>
                       </Grid>
                     </Grid>
