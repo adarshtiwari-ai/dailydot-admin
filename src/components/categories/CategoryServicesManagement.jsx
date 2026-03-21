@@ -233,7 +233,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         exclusions: serviceForm.exclusions ? serviceForm.exclusions.split('\n').filter(i => i.trim()) : [],
         duration: serviceForm.duration ? Number(serviceForm.duration) : null,
         images: serviceForm.images.filter(Boolean),
-        tagId: serviceForm.tagId,
+        tagId: serviceForm.tagId || null,
         isActive: serviceForm.isActive,
         isStartingPrice: serviceForm.isStartingPrice,
         pricingUnit: serviceForm.pricingUnit,
