@@ -123,13 +123,13 @@ const ProviderLedger = () => {
                                                             '&:hover': { textDecoration: 'underline' }
                                                         }}
                                                     >
-                                                        {wallet.providerId?.name || 'Unknown Provider'}
+                                                        {wallet.providerId?.name || 'Unknown Provider (Orphaned)'}
                                                     </Link>
                                                 </TableCell>
                                                 <TableCell>
-                                                    {wallet.providerId?.phone || 'N/A'}<br />
+                                                    {wallet.providerId?.phone || wallet.providerId?.mobile || 'N/A'}<br />
                                                     <Typography variant="caption" color="textSecondary">
-                                                        {wallet.providerId?.email}
+                                                        {wallet.providerId?.email || 'No Email'}
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell sx={{ fontWeight: 'bold', color: isDebt ? '#d32f2f' : isPayout ? '#0288d1' : '#2e7d32' }}>
@@ -149,7 +149,7 @@ const ProviderLedger = () => {
                                                         variant="contained"
                                                         color="primary"
                                                         size="small"
-                                                        disabled={!isDebt}
+                                                        disabled={!isDebt || !wallet.providerId}
                                                         onClick={() => handleOpenSettle(wallet)}
                                                     >
                                                         Settle Dues
