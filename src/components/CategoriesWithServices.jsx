@@ -379,7 +379,7 @@ const CategoriesWithServices = () => {
       const serviceData = {
         name: serviceForm.name.trim(),
         description: serviceForm.description.trim(), // Required by backend
-        price: parseFloat(serviceForm.price),
+        price: Math.round(Number(serviceForm.price) * 100), // Scale to subunits (Paise)
         duration: serviceForm.duration
           ? parseInt(serviceForm.duration)
           : undefined,

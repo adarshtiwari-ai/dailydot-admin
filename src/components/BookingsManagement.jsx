@@ -113,8 +113,8 @@ const BookingsManagement = () => {
           status: status.toLowerCase(),
           proName: status === "confirmed" ? proName : undefined,
           proPhone: status === "confirmed" ? proPhone : undefined,
-          materialCost: status === "completed" ? Number(settlementMaterialCost) : undefined,
-          adminCommission: status === "completed" ? Number(settlementAdminCommission) : undefined
+          materialCost: status === "completed" ? Math.round(Number(settlementMaterialCost) * 100) : undefined,
+          adminCommission: status === "completed" ? Math.round(Number(settlementAdminCommission) * 100) : undefined
         })).unwrap();
         handleCloseDialog();
       } catch (err) {
@@ -133,7 +133,7 @@ const BookingsManagement = () => {
         const updatedBooking = await dispatch(addBookingMaterial({
           id: selectedBooking._id || selectedBooking.id,
           name: materialName,
-          cost: Number(materialCost)
+          cost: Math.round(Number(materialCost) * 100) // Scale to subunits
         })).unwrap();
         // Update local selectedBooking state without closing the dialog
         setSelectedBooking(updatedBooking);
@@ -155,7 +155,7 @@ const BookingsManagement = () => {
         await dispatch(addBookingMaterial({
           id: selectedBooking._id || selectedBooking.id,
           name: `Discount: ${customDiscountName}`,
-          cost: -Number(customDiscountAmount)
+          cost: -Math.round(Number(customDiscountAmount) * 100) // Scale to subunits (Negative for discount)
         })).unwrap();
         
         setCustomDiscountName("");

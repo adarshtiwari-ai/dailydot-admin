@@ -108,10 +108,15 @@ const QuickFixManagement = () => {
                 return;
             }
 
+            const payload = {
+                ...formData,
+                price: Math.round(Number(formData.price) * 100) // Scale to subunits
+            };
+
             if (selectedQuickFix) {
-                await axios.put(`${api.baseURL}/quick-fixes/${selectedQuickFix._id}`, formData);
+                await axios.put(`${api.baseURL}/quick-fixes/${selectedQuickFix._id}`, payload);
             } else {
-                await axios.post(`${api.baseURL}/quick-fixes`, formData);
+                await axios.post(`${api.baseURL}/quick-fixes`, payload);
             }
             fetchQuickFixes();
             handleCloseDialog();
