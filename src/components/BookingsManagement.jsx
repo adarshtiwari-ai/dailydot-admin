@@ -26,6 +26,7 @@ import {
   InputLabel,
   FormControl,
   Autocomplete,
+  Divider,
 } from "@mui/material";
 import TextField from "@mui/material/TextField";
 import BookingAdjustmentModal from "./BookingAdjustmentModal";
@@ -308,7 +309,7 @@ const BookingsManagement = () => {
           onClose={handleCloseDialog}
           maxWidth="md"
           fullWidth
-          key={selectedBooking._id || selectedBooking.id} // Force re-render for new booking
+          key={selectedBooking._id || selectedBooking.id}
         >
           <DialogTitle>
             Booking Details
@@ -318,323 +319,192 @@ const BookingsManagement = () => {
           </DialogTitle>
           <DialogContent dividers>
             <Grid container spacing={3}>
-              {/* Service Details */}
-              <Grid item xs={12}>
-                <Typography variant="h6" gutterBottom>Service Items</Typography>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                        <TableCell><strong>Item Name</strong></TableCell>
-                        <TableCell><strong>Category</strong></TableCell>
-                        <TableCell align="right"><strong>Price</strong></TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {selectedBooking.items && selectedBooking.items.length > 0 ? (
-                        selectedBooking.items.map((item, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{item.name}</TableCell>
-                            <TableCell>{item.category || "N/A"}</TableCell>
-                            <TableCell align="right">₹{formatCurrency(item.price)}</TableCell>
+              {/* LEFT COLUMN: Operations & Basic Info */}
+              <Grid item xs={12} md={7}>
+                <Grid container spacing={2}>
+                  {/* Service Details Table */}
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom>Service Items (Operations)</Typography>
+                    <TableContainer component={Paper} variant="outlined">
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow sx={{ backgroundColor: "#f8fafc" }}>
+                            <TableCell><strong>Item Name</strong></TableCell>
+                            <TableCell align="right"><strong>Price</strong></TableCell>
                           </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell>{selectedBooking.service?.name || selectedBooking.serviceName || "N/A"}</TableCell>
-                          <TableCell>N/A</TableCell>
-                          <TableCell align="right">₹{formatCurrency(selectedBooking.totalAmount || selectedBooking.amount)}</TableCell>
-                        </TableRow>
-                      )}
-                      <TableRow>
-                        <TableCell colSpan={2} align="right"><strong>Base Cost</strong></TableCell>
-                        <TableCell align="right"><strong>₹{formatCurrency(selectedBooking.baseCost || selectedBooking.totalAmount || selectedBooking.amount)}</strong></TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-                {/* Additional Materials */}
-                <Box sx={{ mt: 3, mb: 2 }}>
-                  <Typography variant="h6" gutterBottom>Additional Materials</Typography>
-                  <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow sx={{ backgroundColor: "#fff3e0" }}>
-                          <TableCell><strong>Material / Equipment</strong></TableCell>
-                          <TableCell align="right"><strong>Cost</strong></TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {selectedBooking.materials && selectedBooking.materials.length > 0 ? (
-                          selectedBooking.materials.map((mat, idx) => (
-                            <TableRow key={idx}>
-                              <TableCell>{mat.name}</TableCell>
-                              <TableCell align="right">₹{formatCurrency(mat.cost)}</TableCell>
+                        </TableHead>
+                        <TableBody>
+                          {selectedBooking.items && selectedBooking.items.length > 0 ? (
+                            selectedBooking.items.map((item, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{item.name || item.serviceId?.name || "N/A"} (x{item.quantity || 1})</TableCell>
+                                <TableCell align="right">₹{formatCurrency(item.price || item.serviceId?.price || 0)}</TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            <TableRow>
+                              <TableCell>{selectedBooking.service?.name || selectedBooking.serviceName || "N/A"}</TableCell>
+                              <TableCell align="right">₹{formatCurrency(selectedBooking.totalAmount || selectedBooking.amount)}</TableCell>
                             </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={2} align="center">No additional materials added.</TableCell>
-                          </TableRow>
-                        )}
-                        {selectedBooking.materials && selectedBooking.materials.length > 0 && (
-                          <TableRow>
-                            <TableCell align="right"><strong>Final Total</strong></TableCell>
-                            <TableCell align="right"><strong>₹{formatCurrency(selectedBooking.finalTotal)}</strong></TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Grid>
 
-                  {/* Add Material Form */}
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                    <TextField
-                      label="Item Name"
-                      size="small"
-                      value={materialName}
-                      onChange={(e) => setMaterialName(e.target.value)}
-                      sx={{ flexGrow: 1 }}
-                    />
-                    <TextField
-                      label="Cost (₹)"
-                      size="small"
-                      type="number"
-                      value={materialCost}
-                      onChange={(e) => setMaterialCost(e.target.value)}
-                      sx={{ width: 120 }}
-                    />
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      onClick={handleAddMaterial}
-                      disabled={!materialName || !materialCost || loading.updating}
-                    >
-                      Add
-                    </Button>
-                  </Box>
-                </Box>
+                  {/* Customer & Location Info */}
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle1" gutterBottom sx={{ mt: 1, fontWeight: 'bold' }}>Customer Details</Typography>
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                      <Typography variant="body2"><strong>Name:</strong> {selectedBooking.userId?.name || selectedBooking.name || "Guest"}</Typography>
+                      <Typography variant="body2"><strong>Phone:</strong> {selectedBooking.userId?.phone || selectedBooking.phone || "N/A"}</Typography>
+                    </Paper>
+                  </Grid>
 
-                {/* Ad-Hoc Discount Section */}
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 3, p: 2, bgcolor: '#fef2f2', borderRadius: 1, border: '1px dashed #ef4444' }}>
-                  <Typography variant="subtitle2" color="error.main" sx={{ minWidth: 120 }}>
-                    Apply Ad-Hoc Discount:
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle1" gutterBottom sx={{ mt: 1, fontWeight: 'bold' }}>Location</Typography>
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                      <Typography variant="body2">{selectedBooking.serviceAddress?.addressLine1 || selectedBooking.address || "N/A"}</Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        {selectedBooking.serviceAddress?.city || ""}, {selectedBooking.serviceAddress?.pincode || ""}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+
+                  {/* Update Status Form */}
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Management</Typography>
+                    <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                      <InputLabel>Update Status</InputLabel>
+                      <Select
+                        value={status}
+                        label="Update Status"
+                        onChange={(e) => setStatus(e.target.value)}
+                      >
+                        <MenuItem value="pending">Pending</MenuItem>
+                        <MenuItem value="confirmed">Confirmed</MenuItem>
+                        <MenuItem value="completed">Completed</MenuItem>
+                        <MenuItem value="cancelled">Cancelled</MenuItem>
+                      </Select>
+                    </FormControl>
+
+                    {status === "confirmed" && (
+                      <Box sx={{ p: 2, bgcolor: "#f0f9ff", borderRadius: 1, border: "1px dashed #0ea5e9" }}>
+                         <Typography variant="caption" display="block" sx={{ mb: 1 }}>Assign professional details:</Typography>
+                         <TextField fullWidth label="Pro Name" size="small" value={proName} onChange={(e) => setProName(e.target.value)} sx={{ mb: 1.5 }} />
+                         <TextField fullWidth label="Pro Phone" size="small" value={proPhone} onChange={(e) => setProPhone(e.target.value)} />
+                      </Box>
+                    )}
+
+                    {status === "completed" && (
+                      <Box sx={{ p: 2, bgcolor: "#f0fdf4", borderRadius: 1, border: "1px dashed #22c55e" }}>
+                         <Typography variant="caption" display="block" sx={{ mb: 1 }}>Final settlement costs:</Typography>
+                         <Grid container spacing={2}>
+                            <Grid item xs={6}><TextField fullWidth label="Material Cost" size="small" type="number" value={settlementMaterialCost} onChange={(e) => setSettlementMaterialCost(e.target.value)} /></Grid>
+                            <Grid item xs={6}><TextField fullWidth label="Commission" size="small" type="number" value={settlementAdminCommission} onChange={(e) => setSettlementAdminCommission(e.target.value)} /></Grid>
+                         </Grid>
+                      </Box>
+                    )}
+                  </Grid>
+
+                  {/* Operational Controls (Add Material / Adjust Price) */}
+                  <Grid item xs={12}>
+                     <BookingAdjustmentModal
+                        bookingId={selectedBooking._id || selectedBooking.id}
+                        onSuccess={() => {
+                          dispatch(fetchBookings());
+                          handleCloseDialog();
+                        }}
+                      />
+                  </Grid>
+                </Grid>
+              </Grid>
+
+              {/* RIGHT COLUMN: Billing Breakdown & Internal P&L */}
+              <Grid item xs={12} md={5}>
+                <Paper sx={{ p: 2, bgcolor: '#f8fafc', height: '100%', border: '1px solid #e2e8f0', borderRadius: 2 }}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    🧾 Customer Receipt
                   </Typography>
-                  <TextField 
-                    size="small" 
-                    label="Reason (e.g., Apology)" 
-                    sx={{ flexGrow: 1 }}
-                    value={customDiscountName} 
-                    onChange={(e) => setCustomDiscountName(e.target.value)}
-                  />
-                  <TextField 
-                    size="small" 
-                    type="number" 
-                    label="Amount (₹)" 
-                    sx={{ width: 120 }}
-                    value={customDiscountAmount} 
-                    onChange={(e) => setCustomDiscountAmount(e.target.value)}
-                  />
-                  <Button 
-                    variant="contained" 
-                    color="error" 
-                    onClick={handleApplyCustomDiscount}
-                    disabled={!customDiscountName || !customDiscountAmount || loading.updating}
-                  >
-                    Apply
-                  </Button>
-                </Box>
-              </Grid>
+                  <Divider sx={{ mb: 2 }} />
+                  
+                  <Box sx={{ mb: 2 }}>
+                    {selectedBooking.items?.map((item, idx) => (
+                      <Box key={idx} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="body2">{item.name || item.serviceId?.name} (x{item.quantity || 1})</Typography>
+                        <Typography variant="body2">₹{formatCurrency((item.price || item.serviceId?.price || 0) * (item.quantity || 1))}</Typography>
+                      </Box>
+                    ))}
+                    
+                    {(selectedBooking.materialCost || 0) > 0 && (
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="body2">Material Charges</Typography>
+                        <Typography variant="body2">₹{formatCurrency(selectedBooking.materialCost)}</Typography>
+                      </Box>
+                    )}
 
-              {/* Booking & Customer Info */}
-              <Grid item xs={12} md={6}>
-                <Typography variant="h6" gutterBottom>Customer Details</Typography>
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Typography><strong>Account Name:</strong> {selectedBooking.userId?.name || selectedBooking.name || "Guest"}</Typography>
-                  <Typography><strong>Account Phone:</strong> {selectedBooking.userId?.phone || selectedBooking.phone || "N/A"}</Typography>
-                  <Typography><strong>Email:</strong> {selectedBooking.userId?.email || "N/A"}</Typography>
-                </Paper>
-              </Grid>
+                    <Divider sx={{ my: 1.5, borderStyle: 'dashed' }} />
+                    
+                    {/* Taxes and Fees */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                      <Typography variant="caption" color="textSecondary">Platform Fee</Typography>
+                      <Typography variant="caption" color="textSecondary">₹{formatCurrency(selectedBooking.taxDetails?.platformFee || 0)}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                      <Typography variant="caption" color="textSecondary">CGST (9%)</Typography>
+                      <Typography variant="caption" color="textSecondary">₹{formatCurrency(selectedBooking.taxDetails?.cgst || 0)}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="caption" color="textSecondary">SGST (9%)</Typography>
+                      <Typography variant="caption" color="textSecondary">₹{formatCurrency(selectedBooking.taxDetails?.sgst || 0)}</Typography>
+                    </Box>
 
-              <Grid item xs={12} md={6}>
-                <Typography variant="h6" gutterBottom>Booking Details</Typography>
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Typography><strong>Booking ID:</strong> {selectedBooking._id || selectedBooking.id}</Typography>
-                  <Typography><strong>Booked On:</strong> {new Date(selectedBooking.createdAt).toLocaleString()}</Typography>
-                  <Typography><strong>Scheduled:</strong> {new Date(selectedBooking.scheduledDate).toLocaleDateString()} {selectedBooking.scheduledTime}</Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, pt: 1, borderTop: '2px solid #cbd5e1' }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Total Payable</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#0f172a' }}>
+                        ₹{formatCurrency(selectedBooking.totalAmount || selectedBooking.finalTotal)}
+                      </Typography>
+                    </Box>
 
-                  {selectedBooking.assignedPro && (
-                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #eee' }}>
-                      <Typography variant="subtitle2" color="primary">Assigned Professional</Typography>
-                      <Typography><strong>Name:</strong> {selectedBooking.assignedPro.name}</Typography>
-                      <Typography><strong>Phone:</strong> {selectedBooking.assignedPro.phone}</Typography>
+                    <Box sx={{ mt: 1 }}>
+                      <Chip 
+                        label={selectedBooking.paymentMethod?.toUpperCase() || "PAYMENT PENDING"} 
+                        size="small" 
+                        color={selectedBooking.paymentMethod === 'cod' ? 'warning' : 'info'} 
+                        variant="outlined"
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* Admin P&L Section (The Wall) */}
+                  {selectedBooking.isSettled && (
+                    <Box sx={{ mt: 4, p: 2, bgcolor: '#ecfdf5', borderRadius: 2, border: '1px solid #10b981' }}>
+                      <Typography variant="subtitle2" gutterBottom sx={{ color: '#065f46', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                        🛡️ Internal Admin P&L
+                      </Typography>
+                      <Divider sx={{ mb: 1.5, opacity: 0.3 }} />
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="caption">Net Platform Profit</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#065f46' }}>
+                          ₹{formatCurrency(selectedBooking.netPlatformProfit || selectedBooking.adminCommission)}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="caption">Provider Payout</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#047857' }}>
+                          ₹{formatCurrency((selectedBooking.totalAmount || selectedBooking.finalTotal) - (selectedBooking.materialCost || 0) - (selectedBooking.adminCommission || 0))}
+                        </Typography>
+                      </Box>
                     </Box>
                   )}
                 </Paper>
               </Grid>
-
-              {/* Address & Receiver Details */}
-              <Grid item xs={12}>
-                <Typography variant="h6" gutterBottom>Service Location & Contact</Typography>
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="subtitle2" color="textSecondary">Address</Typography>
-                      <Typography>{selectedBooking.serviceAddress?.addressLine1 || selectedBooking.address || "N/A"}</Typography>
-                      <Typography>
-                        {selectedBooking.serviceAddress?.city || ""}, {selectedBooking.serviceAddress?.state || ""} - {selectedBooking.serviceAddress?.pincode || ""}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="subtitle2" color="textSecondary">Receiver / On-Site Contact</Typography>
-                      <Typography><strong>Name:</strong> {selectedBooking.serviceAddress?.receiverName || "Same as Customer"}</Typography>
-                      <Typography><strong>Phone:</strong> {selectedBooking.serviceAddress?.receiverPhone || "Same as Customer"}</Typography>
-                    </Grid>
-                  </Grid>
-                </Paper>
-              </Grid>
-
-              {/* Status Update */}
-              <Grid item xs={12}>
-                <Typography variant="h6" gutterBottom>Update Status</Typography>
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={status}
-                    label="Status"
-                    onChange={(e) => setStatus(e.target.value)}
-                  >
-                    <MenuItem value="pending">Pending</MenuItem>
-                    <MenuItem value="confirmed">Confirmed</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem>
-                    <MenuItem value="cancelled">Cancelled</MenuItem>
-                  </Select>
-                </FormControl>
-
-                {/* Professional Assignment Inputs - Only show when confirming */}
-                {status === "confirmed" && (
-                  <Box sx={{ mt: 2, p: 2, bgcolor: "#f0f7ff", borderRadius: 1, border: "1px dashed #2196f3" }}>
-                    <Typography variant="subtitle2" color="primary" gutterBottom>
-                      Assign Professional (Optional)
-                    </Typography>
-                    <Typography variant="caption" display="block" sx={{ mb: 2, color: "text.secondary" }}>
-                      Enter details to auto-assign/create a professional account.
-                    </Typography>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
-                        <Autocomplete
-                          fullWidth
-                          freeSolo
-                          options={availablePros}
-                          getOptionLabel={(option) => typeof option === 'string' ? option : option.name}
-                          value={proName}
-                          onInputChange={(event, newInputValue) => {
-                            setProName(newInputValue);
-                          }}
-                          onChange={(event, newValue) => {
-                            if (newValue && typeof newValue === 'object') {
-                              setProName(newValue.name);
-                              setProPhone(newValue.phone || "");
-                            }
-                          }}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label="Professional Name"
-                              size="small"
-                              placeholder="Select or type new name"
-                            />
-                          )}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="Professional Phone"
-                          size="small"
-                          value={proPhone}
-                          onChange={(e) => setProPhone(e.target.value)}
-                          placeholder="e.g. 9876543210"
-                        />
-                      </Grid>
-                    </Grid>
-                  </Box>
-                )}
-
-                {/* Financial Settlement Form - Only show when completing */}
-                {status === "completed" && (
-                  <Box sx={{ mt: 2, p: 2, bgcolor: "#f0fff4", borderRadius: 1, border: "1px dashed #48bb78" }}>
-                    <Typography variant="subtitle2" color="success.main" gutterBottom sx={{ fontWeight: 'bold' }}>
-                      🏁 Final Financial Settlement
-                    </Typography>
-                    <Typography variant="caption" display="block" sx={{ mb: 2, color: "text.secondary" }}>
-                      Input final costs and commission to calculate provider payout and net profit.
-                    </Typography>
-                    
-                    <Grid container spacing={2} alignItems="center">
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          fullWidth
-                          label="Material Cost (₹)"
-                          size="small"
-                          type="number"
-                          value={settlementMaterialCost}
-                          onChange={(e) => setSettlementMaterialCost(e.target.value)}
-                          placeholder="e.g. 500"
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          fullWidth
-                          label="Admin Commission (₹)"
-                          size="small"
-                          type="number"
-                          value={settlementAdminCommission}
-                          onChange={(e) => setSettlementAdminCommission(e.target.value)}
-                          placeholder="e.g. 200"
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <Box sx={{ p: 1, bgcolor: "white", borderRadius: 1, border: "1px solid #e2e8f0" }}>
-                          <Typography variant="caption" color="textSecondary">Live Payout Preview</Typography>
-                          <Typography variant="h6" color="primary.main">
-                            ₹{formatCurrency(
-                              (selectedBooking.finalTotal || selectedBooking.totalAmount || 0) - 
-                              (Number(settlementMaterialCost) || 0) - 
-                              (Number(settlementAdminCommission) || 0)
-                            )}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                    </Grid>
-                    
-                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #c6f6d5', display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2"><strong>Total Bill:</strong> ₹{formatCurrency(selectedBooking.finalTotal || selectedBooking.totalAmount)}</Typography>
-                      <Typography variant="body2" color="success.main"><strong>Net Platform Profit:</strong> ₹{formatCurrency(Number(settlementAdminCommission) || 0)}</Typography>
-                    </Box>
-                  </Box>
-                )}
-              </Grid>
-
-              {/* Dynamic Billing Ledger Adjustments */}
-              {status === "completed" || status === "confirmed" ? (
-                <Grid item xs={12}>
-                  <BookingAdjustmentModal
-                    bookingId={selectedBooking._id || selectedBooking.id}
-                    onSuccess={() => {
-                      dispatch(fetchBookings());
-                      handleCloseDialog();
-                    }}
-                  />
-                </Grid>
-              ) : null}
             </Grid>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>Close</Button>
-            <Button variant="contained" onClick={handleUpdateStatus} color="primary">
-              Update Status
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={handleCloseDialog} color="inherit">Close</Button>
+            <Button variant="contained" onClick={handleUpdateStatus} color="primary" disabled={loading.updating}>
+              Save & Update Status
             </Button>
           </DialogActions>
         </Dialog>
