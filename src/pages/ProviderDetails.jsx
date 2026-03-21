@@ -194,6 +194,9 @@ const ProviderDetails = () => {
                                                 <TableCell fontWeight="bold">Customer</TableCell>
                                                 <TableCell fontWeight="bold">Service</TableCell>
                                                 <TableCell fontWeight="bold">Bill Amount</TableCell>
+                                                <TableCell fontWeight="bold">Materials</TableCell>
+                                                <TableCell fontWeight="bold">Platform Profit</TableCell>
+                                                <TableCell fontWeight="bold">Provider Payout</TableCell>
                                                 <TableCell fontWeight="bold">Status</TableCell>
                                             </TableRow>
                                         </TableHead>
@@ -209,6 +212,11 @@ const ProviderDetails = () => {
                                                         <TableCell>{booking.userId?.name || 'Unknown'}</TableCell>
                                                         <TableCell>{booking.items?.[0]?.name || 'N/A'}</TableCell>
                                                         <TableCell fontWeight="bold">₹{(booking.totalAmount / 100).toFixed(2)}</TableCell>
+                                                        <TableCell>₹{((booking.materialCost || 0) / 100).toFixed(2)}</TableCell>
+                                                        <TableCell color="success.main">₹{((booking.adminCommission || booking.netPlatformProfit || 0) / 100).toFixed(2)}</TableCell>
+                                                        <TableCell sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+                                                            ₹{((booking.totalAmount - (booking.materialCost || 0) - (booking.adminCommission || 0)) / 100).toFixed(2)}
+                                                        </TableCell>
                                                         <TableCell>
                                                             <Chip 
                                                                 label={booking.status} 

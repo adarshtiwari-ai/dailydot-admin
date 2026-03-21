@@ -59,6 +59,10 @@ const BookingsManagement = () => {
   const [materialCost, setMaterialCost] = useState("");
   const [customDiscountName, setCustomDiscountName] = useState("");
   const [customDiscountAmount, setCustomDiscountAmount] = useState("");
+  
+  // Settlement Specific States
+  const [settlementMaterialCost, setSettlementMaterialCost] = useState("");
+  const [settlementAdminCommission, setSettlementAdminCommission] = useState("");
 
   // Fetch bookings when component loads
   useEffect(() => {
@@ -90,6 +94,8 @@ const BookingsManagement = () => {
     setMaterialCost("");
     setCustomDiscountName("");
     setCustomDiscountAmount("");
+    setSettlementMaterialCost("");
+    setSettlementAdminCommission("");
     setOpenDialog(true);
   };
 
@@ -106,7 +112,9 @@ const BookingsManagement = () => {
           id: selectedBooking._id || selectedBooking.id,
           status: status.toLowerCase(),
           proName: status === "confirmed" ? proName : undefined,
-          proPhone: status === "confirmed" ? proPhone : undefined
+          proPhone: status === "confirmed" ? proPhone : undefined,
+          materialCost: status === "completed" ? Number(settlementMaterialCost) : undefined,
+          adminCommission: status === "completed" ? Number(settlementAdminCommission) : undefined
         })).unwrap();
         handleCloseDialog();
       } catch (err) {
@@ -551,6 +559,60 @@ const BookingsManagement = () => {
                         />
                       </Grid>
                     </Grid>
+                  </Box>
+                )}
+
+                {/* Financial Settlement Form - Only show when completing */}
+                {status === "completed" && (
+                  <Box sx={{ mt: 2, p: 2, bgcolor: "#f0fff4", borderRadius: 1, border: "1px dashed #48bb78" }}>
+                    <Typography variant="subtitle2" color="success.main" gutterBottom sx={{ fontWeight: 'bold' }}>
+                      🏁 Final Financial Settlement
+                    </Typography>
+                    <Typography variant="caption" display="block" sx={{ mb: 2, color: "text.secondary" }}>
+                      Input final costs and commission to calculate provider payout and net profit.
+                    </Typography>
+                    
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12} md={4}>
+                        <TextField
+                          fullWidth
+                          label="Material Cost (₹)"
+                          size="small"
+                          type="number"
+                          value={settlementMaterialCost}
+                          onChange={(e) => setSettlementMaterialCost(e.target.value)}
+                          placeholder="e.g. 500"
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <TextField
+                          fullWidth
+                          label="Admin Commission (₹)"
+                          size="small"
+                          type="number"
+                          value={settlementAdminCommission}
+                          onChange={(e) => setSettlementAdminCommission(e.target.value)}
+                          placeholder="e.g. 200"
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <Box sx={{ p: 1, bgcolor: "white", borderRadius: 1, border: "1px solid #e2e8f0" }}>
+                          <Typography variant="caption" color="textSecondary">Live Payout Preview</Typography>
+                          <Typography variant="h6" color="primary.main">
+                            ₹{formatCurrency(
+                              (selectedBooking.finalTotal || selectedBooking.totalAmount || 0) - 
+                              (Number(settlementMaterialCost) || 0) - 
+                              (Number(settlementAdminCommission) || 0)
+                            )}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    </Grid>
+                    
+                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #c6f6d5', display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2"><strong>Total Bill:</strong> ₹{formatCurrency(selectedBooking.finalTotal || selectedBooking.totalAmount)}</Typography>
+                      <Typography variant="body2" color="success.main"><strong>Net Platform Profit:</strong> ₹{formatCurrency(Number(settlementAdminCommission) || 0)}</Typography>
+                    </Box>
                   </Box>
                 )}
               </Grid>
