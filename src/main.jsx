@@ -5,6 +5,7 @@ import { PersistGate } from "redux-persist/integration/react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 
+import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import { store, persistor } from "./store/store";
 import LoadingComponent from "./components/common/LoadingComponent";
@@ -26,7 +27,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <PersistGate loading={<LoadingComponent />} persistor={persistor}>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            <App />
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
           </ThemeProvider>
         </PersistGate>
       </Provider>
