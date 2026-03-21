@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import {
     Box, Typography, Card, CardContent, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, Chip, Button, CircularProgress,
     Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText
 } from '@mui/material';
+import { Link } from 'react-router-dom';
 import axiosInstance from '../services/api.service';
 import { toast } from 'react-toastify';
 
@@ -113,7 +112,17 @@ const ProviderLedger = () => {
                                         return (
                                             <TableRow key={wallet._id} hover>
                                                 <TableCell sx={{ fontWeight: 'medium' }}>
-                                                    {wallet.providerId?.name || 'Unknown Provider'}
+                                                    <Link 
+                                                        to={`/providers/${wallet.providerId?._id}`}
+                                                        style={{ 
+                                                            textDecoration: 'none', 
+                                                            color: '#667eea',
+                                                            fontWeight: 'bold',
+                                                            '&:hover': { textDecoration: 'underline' }
+                                                        }}
+                                                    >
+                                                        {wallet.providerId?.name || 'Unknown Provider'}
+                                                    </Link>
                                                 </TableCell>
                                                 <TableCell>
                                                     {wallet.providerId?.phone || 'N/A'}<br />
