@@ -26,10 +26,10 @@ class SocketService {
       auth: {
         token,
       },
-      transports: ["websocket", "polling"],
+      transports: ["polling", "websocket"],
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 5000,
     });
 
     this.setupEventListeners();
