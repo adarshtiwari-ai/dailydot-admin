@@ -16,13 +16,20 @@ class SocketService {
       return;
     }
 
-    const socketUrl = "http://localhost:3000";
+    // Production Sync: Point to live Render backend
+    const BASE_URL = import.meta.env.VITE_SOCKET_URL || "https://dailydot-api.onrender.com";
+    
+    console.log("🌍 PRODUCTION SOCKET CONNECTING TO:", BASE_URL);
+    console.log("🔌 Attempting Socket Connection to:", BASE_URL);
 
-    this.socket = io(socketUrl, {
+    this.socket = io(BASE_URL, {
       auth: {
         token,
       },
       transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
     this.setupEventListeners();
@@ -33,20 +40,20 @@ class SocketService {
 
     // Connection events
     this.socket.on("connect", () => {
-      console.log("Connected to server");
+      console.log("✅ Socket connected to server. ID:", this.socket.id);
       this.isConnected = true;
 
       // Join admin room for admin-specific events
       this.socket.emit("join-admin-room");
     });
 
-    this.socket.on("disconnect", () => {
-      console.log("Disconnected from server");
+    this.socket.on("disconnect", (reason) => {
+      console.log("❌ Socket disconnected from server. Reason:", reason);
       this.isConnected = false;
     });
 
     this.socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error);
+      console.error("⚠️ Socket connection error:", error.message);
       this.isConnected = false;
     });
 
@@ -69,6 +76,7 @@ class SocketService {
 
     // Booking events
     this.socket.on("new-booking", (booking) => {
+      console.log("🔥 SOCKET DATA ARRIVED AT DASHBOARD (Singleton):", booking);
       store.dispatch(
         updateRealtimeData({
           type: "NEW_BOOKING",
@@ -80,7 +88,7 @@ class SocketService {
         addNotification({
           type: "success",
           title: "New Booking",
-          message: `New booking received: ${booking.service}`,
+          message: `New booking received for #${booking.bookingNumber}`,
           priority: "high",
         })
       );
@@ -98,7 +106,7 @@ class SocketService {
         addNotification({
           type: "info",
           title: "Booking Updated",
-          message: `Booking ${booking.id} status changed to ${booking.status}`,
+          message: `Booking ${booking.bookingNumber} status changed to ${booking.status}`,
           priority: "medium",
         })
       );
@@ -116,7 +124,7 @@ class SocketService {
         addNotification({
           type: "warning",
           title: "Booking Cancelled",
-          message: `Booking ${booking.id} has been cancelled`,
+          message: `Booking ${booking.bookingNumber} has been cancelled`,
           priority: "high",
         })
       );
@@ -147,7 +155,7 @@ class SocketService {
         addNotification({
           type: "success",
           title: "Payment Completed",
-          message: `Payment of ${payment.amount} received for booking ${payment.bookingId}`,
+          message: `Payment of ₹${(payment.amount / 100).toLocaleString()} received`,
           priority: "medium",
         })
       );
@@ -217,7 +225,7 @@ class SocketService {
         addNotification({
           type: "error",
           title: "Emergency Booking",
-          message: `Emergency booking needs immediate attention: ${booking.service}`,
+          message: `Emergency booking needs immediate attention: ${booking.bookingNumber}`,
           priority: "critical",
         })
       );
@@ -229,6 +237,11 @@ class SocketService {
     if (this.socket && this.isConnected) {
       this.socket.emit(event, data);
     }
+  }
+
+  // Helper to get raw socket
+  getSocket() {
+    return this.socket;
   }
 
   // Join specific rooms

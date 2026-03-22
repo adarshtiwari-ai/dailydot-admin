@@ -455,26 +455,39 @@ const CompleteDashboard = () => {
 
   // WebSocket Connection & Real-time Listener
   useEffect(() => {
-    // 1. Connect to socket
+    // 1. Establish connection
     socketService.connect();
-
-    // 2. Listen for 'new-booking'
-    const socket = socketService.socket;
+    
+    const socket = socketService.getSocket();
+    
     if (socket) {
-      socket.on('new-booking', (data) => {
-        console.log("🚨 REAL-TIME NEW BOOKING RECEIVED 🚨", data);
+      console.log("🔌 Initializing Dashboard Socket Listeners...");
+
+      // Global 'connect' listener for debugging
+      socket.on('connect', () => {
+        console.log("🟢 DASHBOARD: Socket Connection Live!");
+      });
+
+      // Specific 'new-booking' listener
+      const handleNewBooking = (data) => {
+        console.log("🔥 SOCKET DATA ARRIVED AT DASHBOARD:", data);
         setLiveBooking(data);
         
-        // Refresh local stats if possible
+        // Refresh local stats
         dispatch(fetchDashboardStats());
         dispatch(fetchRecentBookings(5));
-      });
-    }
+      };
 
-    // 3. Cleanup on unmount
-    return () => {
-      socketService.disconnect();
-    };
+      socket.on('new-booking', handleNewBooking);
+
+      // 3. Cleanup on unmount or socket change
+      return () => {
+        console.log("🧹 Cleaning up Dashboard Socket Listeners...");
+        socket.off('connect');
+        socket.off('new-booking', handleNewBooking);
+        socketService.disconnect();
+      };
+    }
   }, [dispatch]);
 
   // Add state for category navigation
