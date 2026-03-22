@@ -15,6 +15,8 @@ import ProviderLedger from "./ProviderLedger";
 import PushNotificationsManagement from "./PushNotificationsManagement";
 import PromotionsManagement from "./PromotionsManagement";
 import { analyticsAPI } from "../services/api";
+import socketService from "../services/socket";
+import { Modal, Backdrop, Fade, Box as MuiBox } from "@mui/material";
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { ToastContainer } from 'react-toastify';
@@ -449,6 +451,31 @@ const CompleteDashboard = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentView, setCurrentView] = useState("dashboard");
   const [anchorEl, setAnchorEl] = useState(null);
+  const [liveBooking, setLiveBooking] = useState(null);
+
+  // WebSocket Connection & Real-time Listener
+  useEffect(() => {
+    // 1. Connect to socket
+    socketService.connect();
+
+    // 2. Listen for 'new-booking'
+    const socket = socketService.socket;
+    if (socket) {
+      socket.on('new-booking', (data) => {
+        console.log("🚨 REAL-TIME NEW BOOKING RECEIVED 🚨", data);
+        setLiveBooking(data);
+        
+        // Refresh local stats if possible
+        dispatch(fetchDashboardStats());
+        dispatch(fetchRecentBookings(5));
+      });
+    }
+
+    // 3. Cleanup on unmount
+    return () => {
+      socketService.disconnect();
+    };
+  }, [dispatch]);
 
   // Add state for category navigation
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -782,6 +809,108 @@ const CompleteDashboard = () => {
       >
         {renderContent()}
       </Box>
+
+      {/* 🚨 NEW BOOKING ALERT MODAL 🚨 */}
+      <Modal
+        aria-labelledby="new-booking-modal-title"
+        aria-describedby="new-booking-modal-description"
+        open={Boolean(liveBooking)}
+        onClose={() => setLiveBooking(null)}
+        closeAfterTransition
+        slots={{ backdrop: Backdrop }}
+        slotProps={{
+          backdrop: {
+            timeout: 500,
+            sx: { backgroundColor: 'rgba(0, 0, 0, 0.8)' }
+          },
+        }}
+      >
+        <Fade in={Boolean(liveBooking)}>
+          <MuiBox sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 500,
+            bgcolor: 'background.paper',
+            borderRadius: 3,
+            boxShadow: '0 0 50px rgba(255, 60, 0, 0.5)',
+            border: '2px solid #ff4d4d',
+            p: 0,
+            overflow: 'hidden',
+            outline: 'none'
+          }}>
+            {/* Header */}
+            <Box sx={{ 
+              bgcolor: '#ff4d4d', 
+              p: 3, 
+              textAlign: 'center',
+              animation: 'pulse 1.5s infinite' 
+            }}>
+              <style>
+                {`
+                  @keyframes pulse {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.7; }
+                    100% { opacity: 1; }
+                  }
+                `}
+              </style>
+              <Typography variant="h5" color="white" fontWeight="900" sx={{ letterSpacing: 2 }}>
+                🚨 NEW BOOKING ALERT 🚨
+              </Typography>
+            </Box>
+
+            {/* Body */}
+            <Box sx={{ p: 4 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="overline" color="textSecondary">Customer Name</Typography>
+                  <Typography variant="h6" fontWeight="bold">{liveBooking?.name || liveBooking?.userId?.name || 'Unknown'}</Typography>
+                </Grid>
+                <Divider sx={{ width: '100%', my: 2 }} />
+                <Grid item xs={6}>
+                  <Typography variant="overline" color="textSecondary">Service</Typography>
+                  <Typography variant="h6" color="primary" fontWeight="bold">
+                    {liveBooking?.items?.[0]?.name || 'Premium Service'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="overline" color="textSecondary">Amount</Typography>
+                  <Typography variant="h6" color="success.main" fontWeight="bold">
+                    ₹{((liveBooking?.totalAmount || 0) / 100).toLocaleString()}
+                  </Typography>
+                </Grid>
+                <Divider sx={{ width: '100%', my: 3 }} />
+                <Grid item xs={12}>
+                  <Typography variant="overline" color="textSecondary">Address</Typography>
+                  <Typography variant="body1">
+                    {liveBooking?.serviceAddress?.addressLine1}, {liveBooking?.serviceAddress?.city}
+                  </Typography>
+                </Grid>
+              </Grid>
+
+              <Box mt={4} display="flex" justifyContent="center">
+                <Button 
+                  variant="contained" 
+                  size="large" 
+                  fullWidth
+                  onClick={() => setLiveBooking(null)}
+                  sx={{ 
+                    bgcolor: '#2d3436', 
+                    '&:hover': { bgcolor: '#000' },
+                    py: 1.5,
+                    fontWeight: 'bold',
+                    borderRadius: 2
+                  }}
+                >
+                  Acknowledge & Close
+                </Button>
+              </Box>
+            </Box>
+          </MuiBox>
+        </Fade>
+      </Modal>
 
       {/* Profile Menu */}
       <Menu
