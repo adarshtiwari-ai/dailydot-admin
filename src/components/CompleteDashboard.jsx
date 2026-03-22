@@ -461,8 +461,6 @@ const CompleteDashboard = () => {
     const socket = socketService.getSocket();
     
     if (socket) {
-      console.log("🔌 Initializing Dashboard Socket Listeners...");
-
       // Global 'connect' listener for debugging
       socket.on('connect', () => {
         console.log("🟢 DASHBOARD: Socket Connection Live!");
@@ -470,7 +468,6 @@ const CompleteDashboard = () => {
 
       // Specific 'new-booking' listener
       const handleNewBooking = (data) => {
-        console.log("🔥 SOCKET DATA ARRIVED AT DASHBOARD:", data);
         setLiveBooking(data);
         
         // Refresh local stats
@@ -482,7 +479,6 @@ const CompleteDashboard = () => {
 
       // 3. Cleanup on unmount or socket change
       return () => {
-        console.log("🧹 Cleaning up Dashboard Socket Listeners...");
         socket.off('connect');
         socket.off('new-booking', handleNewBooking);
         socketService.disconnect();

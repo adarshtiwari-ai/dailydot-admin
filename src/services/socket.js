@@ -19,17 +19,20 @@ class SocketService {
     // Production Sync: Point to live Render backend
     const BASE_URL = import.meta.env.VITE_SOCKET_URL || "https://dailydot-api.onrender.com";
     
-    console.log("🌍 PRODUCTION SOCKET CONNECTING TO:", BASE_URL);
-    console.log("🔌 Attempting Socket Connection to:", BASE_URL);
+    console.log("⏳ Waiting for Render to wake up...");
 
     this.socket = io(BASE_URL, {
       auth: {
         token,
       },
-      transports: ["polling", "websocket"],
+      transports: ["polling"],
+      upgrade: false,
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 5000,
+      connectTimeout: 45000,
+      pingTimeout: 60000,
+      pingInterval: 25000,
     });
 
     this.setupEventListeners();
