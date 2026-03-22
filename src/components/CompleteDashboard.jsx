@@ -14,6 +14,7 @@ import TrendingServicesManager from "./services/TrendingServicesManager";
 import ProviderLedger from "./ProviderLedger";
 import PushNotificationsManagement from "./PushNotificationsManagement";
 import PromotionsManagement from "./PromotionsManagement";
+import { analyticsAPI } from "../services/api";
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { ToastContainer } from 'react-toastify';
@@ -188,19 +189,30 @@ const getStatusColor = (status) => {
       return "default";
   }
 };
-
 const DashboardContent = () => {
   const dispatch = useDispatch();
-  const stats = useSelector(selectDashboardStats);
   const recentBookings = useSelector(selectRecentBookings);
   const revenueData = useSelector(selectRevenueChart);
   const serviceDistribution = useSelector(selectServiceDistribution);
+  const [analytics, setAnalytics] = useState(null);
 
   useEffect(() => {
     dispatch(fetchDashboardStats());
     dispatch(fetchRecentBookings(5));
     dispatch(fetchRevenueChart("6months"));
     dispatch(fetchServiceDistribution());
+
+    const fetchOverview = async () => {
+      try {
+        const response = await analyticsAPI.getOverview();
+        if (response.data.success) {
+          setAnalytics(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching analytics overview:", error);
+      }
+    };
+    fetchOverview();
   }, [dispatch]);
 
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
@@ -211,37 +223,33 @@ const DashboardContent = () => {
       <Grid container spacing={3} mb={4}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Total Bookings"
-            value={stats.totalBookings?.toLocaleString() || "0"}
-            growth={stats.bookingGrowth}
-            icon={Assignment}
+            title="Total GMV"
+            value={`₹${((analytics?.totalGMV || 0) / 100).toLocaleString()}`}
+            icon={AttachMoney}
             color="#3498db"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Total Revenue"
-            value={`$${stats.totalRevenue?.toLocaleString() || "0"}`}
-            growth={stats.revenueGrowth}
-            icon={AttachMoney}
+            title="Total Profit"
+            value={`₹${((analytics?.totalProfit || 0) / 100).toLocaleString()}`}
+            icon={TrendingUp}
             color="#27ae60"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Total Users"
-            value={stats.totalUsers?.toLocaleString() || "0"}
-            growth={stats.userGrowth}
+            value={analytics?.userCount?.toLocaleString() || "0"}
             icon={UsersIcon}
             color="#f39c12"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Active Services"
-            value={stats.activeServices?.toLocaleString() || "0"}
-            growth={stats.serviceGrowth}
-            icon={ServicesIcon}
+            title="Total Providers"
+            value={analytics?.providerCount?.toLocaleString() || "0"}
+            icon={Assignment}
             color="#9b59b6"
           />
         </Grid>

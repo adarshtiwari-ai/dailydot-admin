@@ -132,6 +132,7 @@ export const reviewsAPI = {
 
 // Analytics API endpoints
 export const analyticsAPI = {
+  getOverview: () => api.get("/analytics/overview"),
   getRevenue: (period = "30days") =>
     api.get(`/admin/analytics/revenue?period=${period}`),
   getBookingTrends: (period = "30days") =>
