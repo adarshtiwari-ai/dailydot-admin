@@ -106,7 +106,8 @@ const SettingsPage = () => {
       gradientMidColor: 'transparent',
       gradientBottomColor: 'rgba(0,0,0,0.8)',
       gradientOpacity: 1.0,
-      heroBanners: systemSettings?.homeScreen?.heroBanners || []
+      heroBanners: systemSettings?.homeScreen?.heroBanners || [],
+      homeScreenMascotUrl: ''
     },
     featureFlags: systemSettings?.featureFlags || {
       enableWallet: false,
@@ -118,6 +119,7 @@ const SettingsPage = () => {
   });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [isUploadingMascot, setIsUploadingMascot] = useState(false);
 
   console.log("Vercel Webhook Test - Active");
 
@@ -152,7 +154,8 @@ const SettingsPage = () => {
         gradientMidColor: 'transparent',
         gradientBottomColor: 'rgba(0,0,0,0.8)',
         gradientOpacity: 1.0,
-        heroBanners: systemSettings?.homeScreen?.heroBanners || []
+        heroBanners: systemSettings?.homeScreen?.heroBanners || [],
+        homeScreenMascotUrl: ''
       },
       featureFlags: systemSettings?.featureFlags || {
         enableWallet: false, enableReferrals: false, enableNewUI: false,
@@ -344,6 +347,33 @@ const SettingsPage = () => {
       console.error('Hero Banner upload failed:', err);
     } finally {
       setIsUploadingBanner(false);
+    }
+  };
+
+  const handleMascotUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingMascot(true);
+    
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const response = await axiosInstance.put("/settings/mascot", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      if (response.data.success) {
+        setLocalBrandingSettings((prev) => ({
+          ...prev,
+          homeScreen: { ...prev.homeScreen, homeScreenMascotUrl: response.data.data.homeScreenMascotUrl },
+        }));
+        toast.success("Mascot updated successfully");
+      }
+    } catch (err) {
+      console.error('Mascot upload failed:', err);
+      toast.error("Failed to upload mascot");
+    } finally {
+      setIsUploadingMascot(false);
     }
   };
 
@@ -1433,6 +1463,42 @@ const SettingsPage = () => {
                       </Grid>
                     ))}
                   </Grid>
+                </Paper>
+
+                {/* Home Screen Mascot */}
+                <Paper sx={{ p: 3, mb: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    Home Screen Mascot
+                  </Typography>
+                  <Box display="flex" alignItems="flex-start" gap={3}>
+                    <Box
+                      sx={{
+                        width: 100, height: 100, borderRadius: 2, border: '2px dashed',
+                        borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        overflow: 'hidden', bgcolor: 'background.default'
+                      }}
+                    >
+                      {localBrandingSettings.homeScreen.homeScreenMascotUrl ? (
+                        <Box component="img" src={localBrandingSettings.homeScreen.homeScreenMascotUrl} sx={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      ) : (
+                        <PersonIcon sx={{ color: 'text.disabled', fontSize: 40 }} />
+                      )}
+                    </Box>
+                    <Box>
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        startIcon={isUploadingMascot ? <CircularProgress size={18} /> : <CloudUploadIcon />}
+                        disabled={isUploadingMascot}
+                      >
+                        {isUploadingMascot ? 'Uploading…' : 'Upload Mascot'}
+                        <input type="file" accept="image/*" hidden onChange={handleMascotUpload} />
+                      </Button>
+                      <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1, maxWidth: 300 }}>
+                        Upload a transparent PNG mascot to display at the very bottom of the mobile home screen.
+                      </Typography>
+                    </Box>
+                  </Box>
                 </Paper>
 
                 {/* Background Color */}
