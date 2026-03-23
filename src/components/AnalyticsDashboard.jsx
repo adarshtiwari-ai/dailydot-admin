@@ -34,6 +34,20 @@ import {
   PieChart as PieChartIcon,
   BarChart as BarChartIcon,
 } from "@mui/icons-material";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
+import { analyticsAPI } from "../services/api";
 
 // Import the Redux actions
 import {
@@ -56,48 +70,64 @@ const AnalyticsDashboard = () => {
 
   const [tabValue, setTabValue] = useState(0);
   const [timePeriod, setTimePeriod] = useState(30);
+  const [overviewData, setOverviewData] = useState(null);
 
   // Fetch analytics data when component loads
   useEffect(() => {
     dispatch(fetchAnalyticsData());
+    
+    // Also fetch the real growth/overview data from our new backend math
+    const loadOverview = async () => {
+      try {
+        const response = await analyticsAPI.getOverview();
+        if (response.data.success) {
+          setOverviewData(response.data);
+        }
+      } catch (err) {
+        console.error("Failed to load overview analytics:", err);
+      }
+    };
+    loadOverview();
   }, [dispatch]);
 
   // Calculate revenue trends when data is loaded
   useEffect(() => {
-    if (rawData.bookings.length > 0) {
+    if (rawData.bookings && rawData.bookings.length > 0) {
       dispatch(calculateRevenueTrends(timePeriod));
     }
   }, [dispatch, rawData.bookings, timePeriod]);
 
+  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
+
   // Main metrics cards
   const metricsCards = [
     {
-      title: "Total Revenue",
-      value: `₹${metrics.totalRevenue?.toLocaleString() || 0}`,
+      title: "Total GMV",
+      value: `₹${((overviewData?.totalGMV || 0) / 100).toLocaleString()}`,
       icon: MoneyIcon,
       color: "#4caf50",
-      growth: "+12.5%",
+      growth: overviewData?.growth?.gmv || 0,
     },
     {
-      title: "Total Bookings",
-      value: metrics.totalBookings?.toLocaleString() || 0,
-      icon: BookingIcon,
-      color: "#2196f3",
-      growth: "+8.2%",
+      title: "Total Profit",
+      value: `₹${((overviewData?.totalProfit || 0) / 100).toLocaleString()}`,
+      icon: TrendingUpIcon,
+      color: "#9c27b0",
+      growth: overviewData?.growth?.profit || 0,
     },
     {
       title: "Total Users",
-      value: metrics.totalUsers?.toLocaleString() || 0,
+      value: (overviewData?.userCount || 0).toLocaleString(),
       icon: UsersIcon,
-      color: "#ff9800",
-      growth: "+15.3%",
+      color: "#2196f3",
+      growth: overviewData?.growth?.users || 0,
     },
     {
-      title: "Avg Order Value",
-      value: `₹${Math.round(metrics.averageOrderValue || 0)}`,
-      icon: TrendingUpIcon,
-      color: "#9c27b0",
-      growth: "+5.7%",
+      title: "Active Providers",
+      value: (overviewData?.providerCount || 0).toLocaleString(),
+      icon: BookingIcon,
+      color: "#ff9800",
+      growth: 0,
     },
   ];
 
@@ -151,10 +181,10 @@ const AnalyticsDashboard = () => {
                     </Typography>
                     <Typography
                       variant="body2"
-                      color="success.main"
-                      sx={{ mt: 1 }}
+                      color={metric.growth >= 0 ? "success.main" : "error.main"}
+                      sx={{ mt: 1, display: "flex", alignItems: "center" }}
                     >
-                      {metric.growth} from last month
+                      {metric.growth >= 0 ? "+" : ""}{metric.growth}% from last 30d
                     </Typography>
                   </Box>
                   <Box
@@ -384,43 +414,35 @@ const AnalyticsDashboard = () => {
                 <CircularProgress />
               </Box>
             ) : charts.revenueData.length > 0 ? (
-              <Box
-                sx={{
-                  height: 300,
-                  backgroundColor: "#f5f5f5",
-                  borderRadius: 2,
-                  p: 2,
-                }}
-              >
-                <Typography color="text.secondary" align="center">
-                  Revenue Chart Visualization
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  align="center"
-                  sx={{ mt: 1 }}
-                >
-                  Chart.js or Recharts integration needed for visual
-                  representation
-                </Typography>
-                <Box sx={{ mt: 2 }}>
-                  {charts.revenueData.slice(0, 5).map((item, index) => (
-                    <Box
-                      key={index}
-                      display="flex"
-                      justifyContent="space-between"
-                      sx={{ py: 1 }}
-                    >
-                      <Typography variant="body2">
-                        {item.formattedDate}
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                        ₹{item.revenue.toLocaleString()}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
+              <Box sx={{ height: 350, width: "100%", mt: 2 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={charts.revenueData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis 
+                      dataKey="formattedDate" 
+                      tick={{ fontSize: 12 }}
+                      interval="auto"
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => `₹${value / 100 >= 1000 ? (value / 100000).toFixed(1) + 'k' : value / 100}`}
+                    />
+                    <Tooltip 
+                      formatter={(value) => [`₹${(value / 100).toLocaleString()}`, "Revenue"]}
+                      labelStyle={{ fontWeight: "bold" }}
+                    />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#667eea" 
+                      strokeWidth={3}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
+                      name="Revenue (₹)"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </Box>
             ) : (
               <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
@@ -438,58 +460,79 @@ const AnalyticsDashboard = () => {
               Booking Status Distribution
             </Typography>
 
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>
-                      <strong>Status</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>Count</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>Percentage</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>Progress</strong>
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {charts.bookingStatusDistribution.map((status) => (
-                    <TableRow key={status.status}>
-                      <TableCell>
-                        <Chip
-                          label={status.status.toUpperCase()}
-                          size="small"
-                          color={
-                            status.status === "completed"
-                              ? "success"
-                              : status.status === "pending"
-                                ? "warning"
-                                : status.status === "cancelled"
-                                  ? "error"
-                                  : "info"
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>{status.count}</TableCell>
-                      <TableCell>{status.percentage}%</TableCell>
-                      <TableCell>
-                        <Box sx={{ width: "100px" }}>
-                          <LinearProgress
-                            variant="determinate"
-                            value={parseFloat(status.percentage)}
-                            sx={{ height: 6, borderRadius: 3 }}
-                          />
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <Grid container spacing={3} alignItems="center">
+              <Grid item xs={12} md={6}>
+                <Box sx={{ height: 300 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={charts.bookingStatusDistribution}
+                        dataKey="count"
+                        nameKey="status"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        innerRadius={60}
+                        paddingAngle={5}
+                        label={({ status, percentage }) => `${status}: ${percentage}%`}
+                      >
+                        {charts.bookingStatusDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell><strong>Status</strong></TableCell>
+                        <TableCell><strong>Count</strong></TableCell>
+                        <TableCell><strong>Percentage</strong></TableCell>
+                        <TableCell><strong>Progress</strong></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {charts.bookingStatusDistribution.map((status) => (
+                        <TableRow key={status.status}>
+                          <TableCell>
+                            <Chip
+                              label={status.status.toUpperCase()}
+                              size="small"
+                              color={
+                                status.status === "completed"
+                                  ? "success"
+                                  : status.status === "pending"
+                                    ? "warning"
+                                    : status.status === "cancelled"
+                                      ? "error"
+                                      : "info"
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>{status.count}</TableCell>
+                          <TableCell>{status.percentage}%</TableCell>
+                          <TableCell>
+                            <Box sx={{ width: "100px" }}>
+                              <LinearProgress
+                                variant="determinate"
+                                value={parseFloat(status.percentage)}
+                                sx={{ height: 6, borderRadius: 3 }}
+                              />
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Grid>
+            </Grid>
           </Box>
         </Card>
       )}
@@ -505,18 +548,10 @@ const AnalyticsDashboard = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>
-                      <strong>Service Name</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>Total Bookings</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>Total Revenue</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>Avg Revenue per Booking</strong>
-                    </TableCell>
+                    <TableCell><strong>Service Name</strong></TableCell>
+                    <TableCell><strong>Total Bookings</strong></TableCell>
+                    <TableCell><strong>Total Revenue</strong></TableCell>
+                    <TableCell><strong>Avg Revenue</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -548,9 +583,7 @@ const AnalyticsDashboard = () => {
                       <TableCell>
                         ₹
                         {service.bookings > 0
-                          ? Math.round(
-                            service.revenue / service.bookings
-                          ).toLocaleString()
+                          ? Math.round(service.revenue / service.bookings).toLocaleString()
                           : 0}
                       </TableCell>
                     </TableRow>
