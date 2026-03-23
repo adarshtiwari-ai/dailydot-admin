@@ -227,6 +227,17 @@ const SettingsPage = () => {
     }
   };
 
+  const handleMapProviderToggle = async (provider) => {
+    try {
+      // Direct call to specific endpoint for map provider
+      await axios.put(`${import.meta.env.VITE_API_URL}/v1/settings/map-provider`, { provider }, { withCredentials: true });
+      setLocalSystemSettings(prev => ({ ...prev, activeMapProvider: provider }));
+      dispatch(getSettings()); // Refresh global state
+    } catch (error) {
+      console.error("Failed to update map provider:", error);
+    }
+  };
+
   // Handle notification settings save
   const handleNotificationSettingsSave = async () => {
     try {
@@ -640,7 +651,6 @@ const SettingsPage = () => {
                       sx={{ mb: 2 }}
                     />
                   </Box>
-
                   <FormControl fullWidth sx={{ mb: 2 }}>
                     <InputLabel>Currency</InputLabel>
                     <Select
@@ -679,22 +689,7 @@ const SettingsPage = () => {
                     </Select>
                   </FormControl>
 
-                  <FormControl fullWidth sx={{ mb: 2 }}>
-                    <InputLabel>Active Map Provider</InputLabel>
-                    <Select
-                      value={localSystemSettings.activeMapProvider || 'ola'}
-                      onChange={(e) =>
-                        setLocalSystemSettings({
-                          ...localSystemSettings,
-                          activeMapProvider: e.target.value,
-                        })
-                      }
-                      label="Active Map Provider"
-                    >
-                      <MenuItem value="ola">Ola Maps</MenuItem>
-                      <MenuItem value="google">Google Maps</MenuItem>
-                    </Select>
-                  </FormControl>
+
                 </Paper>
               </Grid>
 
@@ -759,6 +754,42 @@ const SettingsPage = () => {
                       </ListItemSecondaryAction>
                     </ListItem>
                   </List>
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.default' }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <SettingsIcon fontSize="small" color="primary" /> Map Provider Configuration
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Switch between Google Maps (Precise) and Ola Maps (Localized) for the mobile app.
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Chip 
+                        label="Google" 
+                        color={localSystemSettings.activeMapProvider === 'google' ? 'primary' : 'default'}
+                        variant={localSystemSettings.activeMapProvider === 'google' ? 'filled' : 'outlined'}
+                        onClick={() => handleMapProviderToggle('google')}
+                        sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                      />
+                      <Switch 
+                        checked={localSystemSettings.activeMapProvider === 'ola'}
+                        onChange={(e) => handleMapProviderToggle(e.target.checked ? 'ola' : 'google')}
+                        color="secondary"
+                      />
+                      <Chip 
+                        label="Ola Maps" 
+                        color={localSystemSettings.activeMapProvider === 'ola' ? 'secondary' : 'default'}
+                        variant={localSystemSettings.activeMapProvider === 'ola' ? 'filled' : 'outlined'}
+                        onClick={() => handleMapProviderToggle('ola')}
+                        sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                      />
+                    </Box>
+                  </Box>
                 </Paper>
               </Grid>
 
