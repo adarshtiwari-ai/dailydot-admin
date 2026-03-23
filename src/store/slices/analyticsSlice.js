@@ -21,12 +21,12 @@ export const fetchAnalyticsData = createAsyncThunk(
       ]);
 
       const bookings =
-        bookingsResponse.data.data || bookingsResponse.data || [];
-      const users = usersResponse.data.data || usersResponse.data || [];
+        bookingsResponse.data.bookings || bookingsResponse.data.data || bookingsResponse.data || [];
+      const users = usersResponse.data.users || usersResponse.data.data || usersResponse.data || [];
       const services =
-        servicesResponse.data.data || servicesResponse.data || [];
+        servicesResponse.data.services || servicesResponse.data.data || servicesResponse.data || [];
       const categories =
-        categoriesResponse.data.data || categoriesResponse.data || [];
+        categoriesResponse.data.categories || categoriesResponse.data.data || categoriesResponse.data || [];
 
       return {
         bookings: Array.isArray(bookings) ? bookings : [],
@@ -64,7 +64,7 @@ export const calculateRevenueTrends = createAsyncThunk(
         const bookingDate = new Date(
           booking.createdAt || booking.scheduledDate
         );
-        if (bookingDate >= startDate && booking.status === "completed") {
+        if (bookingDate >= startDate && booking.status?.toLowerCase() === "completed") {
           const dateKey = bookingDate.toISOString().split("T")[0];
           const amount = booking.totalAmount || booking.amount || 0;
 
@@ -144,7 +144,7 @@ const analyticsSlice = createSlice({
 
       if (Array.isArray(bookings) && bookings.length > 0) {
         const completedBookings = bookings.filter(
-          (b) => b.status === "completed"
+          (b) => b.status?.toLowerCase() === "completed"
         );
         const totalRevenue = completedBookings.reduce(
           (sum, booking) => sum + (booking.totalAmount || booking.amount || 0),
@@ -166,7 +166,7 @@ const analyticsSlice = createSlice({
         // Calculate booking status distribution
         const statusCounts = {};
         bookings.forEach((booking) => {
-          const status = booking.status || "pending";
+          const status = (booking.status || "pending").toLowerCase();
           statusCounts[status] = (statusCounts[status] || 0) + 1;
         });
 
@@ -197,7 +197,7 @@ const analyticsSlice = createSlice({
               .filter(
                 (b) =>
                   (b.service?.name || b.serviceName) === serviceName &&
-                  b.status === "completed"
+                b.status?.toLowerCase() === "completed"
               )
               .reduce((sum, b) => sum + (b.totalAmount || b.amount || 0), 0),
           }))
