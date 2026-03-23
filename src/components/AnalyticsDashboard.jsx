@@ -544,60 +544,89 @@ const AnalyticsDashboard = () => {
               Top Performing Services
             </Typography>
 
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell><strong>Service Name</strong></TableCell>
-                    <TableCell><strong>Total Bookings</strong></TableCell>
-                    <TableCell><strong>Total Revenue</strong></TableCell>
-                    <TableCell><strong>Avg Revenue</strong></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {charts.topServices.map((service, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <Box display="flex" alignItems="center">
-                          <Box
-                            sx={{
-                              width: 24,
-                              height: 24,
-                              borderRadius: "50%",
-                              backgroundColor: "primary.main",
-                              color: "white",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: "12px",
-                              mr: 2,
-                            }}
-                          >
-                            {index + 1}
-                          </Box>
-                          {service.serviceName}
-                        </Box>
-                      </TableCell>
-                      <TableCell>{service.bookings}</TableCell>
-                      <TableCell>₹{service.revenue.toLocaleString()}</TableCell>
-                      <TableCell>
-                        ₹
-                        {service.bookings > 0
-                          ? Math.round(service.revenue / service.bookings).toLocaleString()
-                          : 0}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {charts.topServices.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={4} align="center">
-                        No service data available
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={5}>
+                <Box sx={{ height: 350 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={charts.topServices}
+                        dataKey="bookings"
+                        nameKey="serviceName"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        innerRadius={60}
+                        paddingAngle={5}
+                        label={({ serviceName, bookings }) => `${serviceName}: ${bookings}`}
+                      >
+                        {charts.topServices.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={7}>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell><strong>Service Name</strong></TableCell>
+                        <TableCell><strong>Total Bookings</strong></TableCell>
+                        <TableCell><strong>Total Revenue</strong></TableCell>
+                        <TableCell><strong>Avg Revenue</strong></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {charts.topServices.map((service, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <Box display="flex" alignItems="center">
+                              <Box
+                                sx={{
+                                  width: 24,
+                                  height: 24,
+                                  borderRadius: "50%",
+                                  backgroundColor: "primary.main",
+                                  color: "white",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: "12px",
+                                  mr: 2,
+                                }}
+                              >
+                                {index + 1}
+                              </Box>
+                              {service.serviceName}
+                            </Box>
+                          </TableCell>
+                          <TableCell>{service.bookings}</TableCell>
+                          <TableCell>₹{service.revenue.toLocaleString()}</TableCell>
+                          <TableCell>
+                            ₹
+                            {service.bookings > 0
+                              ? Math.round(service.revenue / service.bookings).toLocaleString()
+                              : 0}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {charts.topServices.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} align="center">
+                            No service data available
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Grid>
+            </Grid>
           </Box>
         </Card>
       )}

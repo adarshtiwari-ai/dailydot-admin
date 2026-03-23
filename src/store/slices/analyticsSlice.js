@@ -183,23 +183,34 @@ const analyticsSlice = createSlice({
 
         // Calculate top services
         const serviceCounts = {};
+        const serviceRevenue = {};
+        
         bookings.forEach((booking) => {
-          const serviceName =
-            booking.service?.name || booking.serviceName || "Unknown Service";
-          serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1;
+          if (booking.items && Array.isArray(booking.items)) {
+            booking.items.forEach((item) => {
+              const serviceName = item.serviceId?.name || item.name || "Unknown Service";
+              serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1;
+              
+              if (booking.status?.toLowerCase() === "completed") {
+                // If it's a completed booking, we add the item's price to the service's revenue
+                serviceRevenue[serviceName] = (serviceRevenue[serviceName] || 0) + (item.price || 0);
+              }
+            });
+          } else {
+            // Fallback for older data format if any
+            const serviceName = booking.service?.name || booking.serviceName || "Unknown Service";
+            serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1;
+            if (booking.status?.toLowerCase() === "completed") {
+              serviceRevenue[serviceName] = (serviceRevenue[serviceName] || 0) + (booking.totalAmount || booking.amount || 0);
+            }
+          }
         });
 
         state.charts.topServices = Object.keys(serviceCounts)
           .map((serviceName) => ({
             serviceName,
             bookings: serviceCounts[serviceName],
-            revenue: bookings
-              .filter(
-                (b) =>
-                  (b.service?.name || b.serviceName) === serviceName &&
-                b.status?.toLowerCase() === "completed"
-              )
-              .reduce((sum, b) => sum + (b.totalAmount || b.amount || 0), 0),
+            revenue: serviceRevenue[serviceName] || 0,
           }))
           .sort((a, b) => b.bookings - a.bookings)
           .slice(0, 10);
