@@ -60,6 +60,8 @@ import {
   selectBillingSettings,
 } from "../store/slices/settingsSlice";
 import { uploadToCloudinary } from "../utils/uploadToCloudinary";
+import axiosInstance from "../services/api.service";
+import { toast } from "react-toastify";
 
 const SettingsPage = () => {
   const dispatch = useDispatch();
@@ -228,13 +230,32 @@ const SettingsPage = () => {
   };
 
   const handleMapProviderToggle = async (provider) => {
+    const previousProvider = localSystemSettings.activeMapProvider;
+
     try {
-      // Direct call to specific endpoint for map provider
-      await axios.put(`${import.meta.env.VITE_API_URL}/v1/settings/map-provider`, { provider }, { withCredentials: true });
-      setLocalSystemSettings(prev => ({ ...prev, activeMapProvider: provider }));
-      dispatch(getSettings()); // Refresh global state
+      // 1. Optimistic Update
+      setLocalSystemSettings((prev) => ({
+        ...prev,
+        activeMapProvider: provider,
+      }));
+
+      // 2. Authenticated API Call (uses axiosInstance for Bearer token)
+      await axiosInstance.put(`/settings/map-provider`, { provider });
+
+      // 3. Sync global state
+      dispatch(getSettings());
+      toast.success(`Map provider switched to ${provider.toUpperCase()}`);
     } catch (error) {
       console.error("Failed to update map provider:", error);
+      // 4. Revert state on failure
+      setLocalSystemSettings((prev) => ({
+        ...prev,
+        activeMapProvider: previousProvider,
+      }));
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to update map provider. Please check your connection."
+      );
     }
   };
 
