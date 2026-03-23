@@ -219,6 +219,39 @@ const DashboardContent = () => {
 
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
 
+  const handleDownloadCSV = () => {
+    if (!recentBookings || recentBookings.length === 0) {
+      alert("No bookings available to export.");
+      return;
+    }
+
+    const headers = ["Booking ID", "Service", "Customer", "Amount (₹)", "Status", "Date"];
+    const rows = recentBookings.map(booking => [
+      booking.bookingNumber || booking._id,
+      booking.serviceId?.name || "N/A",
+      booking.userId?.name || "N/A",
+      (booking.totalAmount / 100).toFixed(2),
+      booking.status,
+      new Date(booking.scheduledDate).toLocaleDateString()
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const date = new Date().toISOString().split('T')[0];
+    link.setAttribute("href", url);
+    link.setAttribute("download", `dailydot-bookings-${date}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <Box>
       {/* Stats Cards */}
@@ -531,44 +564,7 @@ const CompleteDashboard = () => {
     setCurrentView("categories");
   };
 
-  const handleDownloadCSV = () => {
-    if (!recentBookings || recentBookings.length === 0) {
-      alert("No bookings available to export.");
-      return;
-    }
 
-    // Define headers
-    const headers = ["Booking ID", "Service", "Customer", "Amount (₹)", "Status", "Date"];
-    
-    // Map booking data to rows
-    const rows = recentBookings.map(booking => [
-      booking.bookingNumber || booking._id,
-      booking.serviceId?.name || "N/A",
-      booking.userId?.name || "N/A",
-      (booking.totalAmount / 100).toFixed(2), // Convert Paise to Rupees
-      booking.status,
-      new Date(booking.scheduledDate).toLocaleDateString()
-    ]);
-
-    // Create CSV string
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
-    ].join("\n");
-
-    // Trigger download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    const date = new Date().toISOString().split('T')[0];
-    
-    link.setAttribute("href", url);
-    link.setAttribute("download", `dailydot-bookings-${date}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const getPageTitle = (view) => {
     const titles = {
