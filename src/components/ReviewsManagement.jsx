@@ -57,7 +57,7 @@ const ReviewsManagement = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [replyText, setReplyText] = useState("");
-  const [selectedReviewId, setSelectedReviewId] = useState(null);
+  const [selectedReview, setSelectedReview] = useState(null);
 
   // Fetch reviews and stats when component loads
   useEffect(() => {
@@ -94,7 +94,7 @@ const ReviewsManagement = () => {
   };
 
   const handleOpenReply = (review) => {
-    setSelectedReviewId(review._id);
+    setSelectedReview(review);
     setReplyText(review.adminResponse?.message || "");
     setReplyDialogOpen(true);
   };
@@ -102,7 +102,7 @@ const ReviewsManagement = () => {
   const handleCloseReply = () => {
     setReplyDialogOpen(false);
     setReplyText("");
-    setSelectedReviewId(null);
+    setSelectedReview(null);
   };
 
   const handleSubmitReply = () => {
@@ -110,7 +110,7 @@ const ReviewsManagement = () => {
       alert("Response must be at least 10 characters long.");
       return;
     }
-    dispatch(respondToReview({ reviewId: selectedReviewId, message: replyText }));
+    dispatch(respondToReview({ reviewId: selectedReview._id, message: replyText }));
     handleCloseReply();
   };
 
@@ -123,7 +123,7 @@ const ReviewsManagement = () => {
       color: "#2196f3",
     },
     {
-      title: "Average Rating",
+      title: "Avg Service Rating",
       value: `${stats.averageRating || 0}/5`,
       icon: StarIcon,
       color: "#ff9800",
@@ -273,10 +273,16 @@ const ReviewsManagement = () => {
                         </Box>
                       </Box>
                       <Box textAlign="right">
-                        <Rating value={review.rating || 0} readOnly size="small" />
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                          {review.rating || 0}/5 stars
-                        </Typography>
+                        <Box display="flex" flexDirection="column" gap={0.5} alignItems="flex-end">
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Typography variant="caption" color="text.secondary">Service:</Typography>
+                            <Rating value={review.serviceRating || 0} readOnly size="small" />
+                          </Box>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Typography variant="caption" color="text.secondary">Professional:</Typography>
+                            <Rating value={review.providerRating || 0} readOnly size="small" />
+                          </Box>
+                        </Box>
                       </Box>
                     </Box>
 
@@ -375,7 +381,27 @@ const ReviewsManagement = () => {
           {replyText ? "Edit Response" : "Public Response to Review"}
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          {selectedReview && (
+            <Box sx={{ mb: 3, p: 2, bgcolor: "#f9f9f9", borderRadius: 1, border: "1px solid #eee" }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                <Typography variant="subtitle2" fontWeight="bold">Original Review:</Typography>
+                <Box display="flex" gap={2}>
+                  <Box display="flex" alignItems="center" gap={0.5}>
+                    <Typography variant="caption" color="text.secondary">Service:</Typography>
+                    <Rating value={selectedReview.serviceRating || 0} readOnly size="small" />
+                  </Box>
+                  <Box display="flex" alignItems="center" gap={0.5}>
+                    <Typography variant="caption" color="text.secondary">Pro:</Typography>
+                    <Rating value={selectedReview.providerRating || 0} readOnly size="small" />
+                  </Box>
+                </Box>
+              </Box>
+              <Typography variant="body2" sx={{ fontStyle: "italic" }}>
+                "{selectedReview.comment}"
+              </Typography>
+            </Box>
+          )}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             Your response will be visible to all users on the mobile app.
           </Typography>
           <TextField
