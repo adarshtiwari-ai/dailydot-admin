@@ -68,6 +68,7 @@ const BannersManagement = () => {
         isActive: true,
         sortOrder: 0,
         placement: 'home',
+        linkType: 'url',
         referenceId: null
     });
     const [selectedBanner, setSelectedBanner] = useState(null);
@@ -126,6 +127,7 @@ const BannersManagement = () => {
                 isActive: banner.isActive,
                 sortOrder: banner.sortOrder || 0,
                 placement: banner.placement || 'home',
+                linkType: banner.linkType || 'url',
                 referenceId: banner.referenceId || null
             });
         } else {
@@ -140,6 +142,7 @@ const BannersManagement = () => {
                 isActive: true,
                 sortOrder: 0,
                 placement: 'home',
+                linkType: 'url',
                 referenceId: null
             });
         }
@@ -201,6 +204,7 @@ const BannersManagement = () => {
                 sortOrder: formData.sortOrder,
                 isActive: formData.isActive,
                 placement: formData.placement,
+                linkType: formData.linkType,
                 image: imageUrl,
                 referenceId: formData.referenceId
             };
@@ -349,19 +353,20 @@ const BannersManagement = () => {
                         />
 
                         <FormControl fullWidth margin="normal">
-                            <InputLabel>Placement</InputLabel>
+                            <InputLabel>Action Type</InputLabel>
                             <Select
-                                value={formData.placement}
-                                label="Placement"
-                                onChange={(e) => setFormData({ ...formData, placement: e.target.value, referenceId: null })}
+                                value={formData.linkType}
+                                label="Action Type"
+                                onChange={(e) => setFormData({ ...formData, linkType: e.target.value, referenceId: null })}
                             >
-                                <MenuItem value="home">Home</MenuItem>
-                                <MenuItem value="category">Category Detail</MenuItem>
-                                <MenuItem value="service">Service Detail</MenuItem>
+                                <MenuItem value="url">External URL</MenuItem>
+                                <MenuItem value="service">Internal Service</MenuItem>
+                                <MenuItem value="category">Internal Category</MenuItem>
+                                <MenuItem value="none">None</MenuItem>
                             </Select>
                         </FormControl>
 
-                        {formData.placement === 'category' && (
+                        {formData.linkType === 'category' && (
                             <Autocomplete
                                 options={categories}
                                 getOptionLabel={(option) => option.name}
@@ -369,11 +374,11 @@ const BannersManagement = () => {
                                 onChange={(event, newValue) => {
                                     setFormData({ ...formData, referenceId: newValue ? newValue._id : null });
                                 }}
-                                renderInput={(params) => <TextField {...params} label="Select Category" margin="normal" />}
+                                renderInput={(params) => <TextField {...params} label="Select Target Category" margin="normal" />}
                             />
                         )}
 
-                        {formData.placement === 'service' && (
+                        {formData.linkType === 'service' && (
                             <Autocomplete
                                 options={services}
                                 getOptionLabel={(option) => option.name}
@@ -381,9 +386,22 @@ const BannersManagement = () => {
                                 onChange={(event, newValue) => {
                                     setFormData({ ...formData, referenceId: newValue ? newValue._id : null });
                                 }}
-                                renderInput={(params) => <TextField {...params} label="Select Service" margin="normal" />}
+                                renderInput={(params) => <TextField {...params} label="Select Target Service" margin="normal" />}
                             />
                         )}
+
+                        <FormControl fullWidth margin="normal">
+                            <InputLabel>Display Placement</InputLabel>
+                            <Select
+                                value={formData.placement}
+                                label="Display Placement"
+                                onChange={(e) => setFormData({ ...formData, placement: e.target.value })}
+                            >
+                                <MenuItem value="home">Home Page</MenuItem>
+                                <MenuItem value="category">Category Detail Header</MenuItem>
+                                <MenuItem value="service">Service Detail Sidebar</MenuItem>
+                            </Select>
+                        </FormControl>
 
                         <Box sx={{ mt: 2, mb: 1 }}>
                             <Typography variant="subtitle2" gutterBottom>Banner Image</Typography>
@@ -420,13 +438,15 @@ const BannersManagement = () => {
                             </Box>
                         </Box>
 
-                        <TextField
-                            margin="normal"
-                            fullWidth
-                            label="Redirect URL (Optional)"
-                            value={formData.redirectUrl}
-                            onChange={(e) => setFormData({ ...formData, redirectUrl: e.target.value })}
-                        />
+                        {formData.linkType === 'url' && (
+                            <TextField
+                                margin="normal"
+                                fullWidth
+                                label="Redirect URL"
+                                value={formData.redirectUrl}
+                                onChange={(e) => setFormData({ ...formData, redirectUrl: e.target.value })}
+                            />
+                        )}
                         <TextField
                             margin="normal"
                             fullWidth
