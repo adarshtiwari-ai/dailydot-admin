@@ -297,6 +297,8 @@ export const usePolling = (
   const [isPolling, setIsPolling] = useState(false);
 
   const fetchData = useCallback(async () => {
+    if (!localStorage.getItem("adminToken")) return;
+    
     try {
       setLoading(true);
       setError(null);
