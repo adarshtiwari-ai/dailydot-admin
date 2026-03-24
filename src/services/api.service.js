@@ -1,5 +1,7 @@
 // src/services/api.service.js
 import axios from "axios";
+import { store } from "../store/store";
+import { logout } from "../store/slices/authSlice";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
 
@@ -50,10 +52,17 @@ axiosInstance.interceptors.response.use(
     });
 
     if (error.response?.status === 401) {
-      // Token expired or invalid
+      // 1. Tell Redux to clear the state officially
+      store.dispatch(logout());
+
+      // 2. Nuke the raw token and user details
       localStorage.removeItem("adminToken");
       localStorage.removeItem("adminUser");
-      // Redirect to login if not already there
+
+      // 3. Nuke the redux-persist cache
+      localStorage.removeItem("persist:dailydot-admin");
+
+      // 4. Safely redirect to login if not already there
       if (!window.location.pathname.includes("/login")) {
         window.location.href = "/login";
       }
