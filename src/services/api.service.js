@@ -1,9 +1,12 @@
 // src/services/api.service.js
 import axios from "axios";
-import { store } from "../store/store";
-import { logout } from "../store/slices/authSlice";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
+
+let injectedStore;
+export const injectStore = (store) => {
+    injectedStore = store;
+};
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -52,8 +55,10 @@ axiosInstance.interceptors.response.use(
     });
 
     if (error.response?.status === 401) {
-      // 1. Tell Redux to clear the state officially
-      store.dispatch(logout());
+      // 1. Tell Redux to clear the state officially (using raw injected dispatch to bypass cyclic imports)
+      if (injectedStore) {
+        injectedStore.dispatch({ type: 'auth/logout' });
+      }
 
       // 2. Nuke the raw token and user details
       localStorage.removeItem("adminToken");
