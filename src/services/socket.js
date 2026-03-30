@@ -25,7 +25,7 @@ class SocketService {
       auth: {
         token,
       },
-      transports: ["polling"],
+      transports: ["websocket"],
       upgrade: false,
       reconnection: true,
       reconnectionAttempts: 10,
