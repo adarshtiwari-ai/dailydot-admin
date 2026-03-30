@@ -77,6 +77,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
     duration: "",
     images: [""],
     isActive: true,
+    isComingSoon: false,
     isStartingPrice: false,
     pricingUnit: "fixed",
     searchTags: "",
@@ -128,6 +129,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         images:
           service.images && service.images.length > 0 ? service.images : [""],
         isActive: service.isActive !== false,
+        isComingSoon: service.isComingSoon || false,
         tagId: service.tagId || "",
         isStartingPrice: service.isStartingPrice || false,
         pricingUnit: service.pricingUnit || "fixed",
@@ -145,6 +147,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         duration: "",
         images: [""],
         isActive: true,
+        isComingSoon: false,
         tagId: "",
         isStartingPrice: false,
         pricingUnit: "fixed",
@@ -167,6 +170,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
       duration: "",
       images: [""],
       isActive: true,
+      isComingSoon: false,
       tagId: "",
       isStartingPrice: false,
       pricingUnit: "fixed",
@@ -235,6 +239,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         images: serviceForm.images.filter(Boolean),
         tagId: serviceForm.tagId || null,
         isActive: serviceForm.isActive,
+        isComingSoon: serviceForm.isComingSoon,
         isStartingPrice: serviceForm.isStartingPrice,
         pricingUnit: serviceForm.pricingUnit,
         searchTags: serviceForm.searchTags ? serviceForm.searchTags.split(',').map(tag => tag.trim()).filter(tag => tag !== '') : [],
@@ -725,21 +730,46 @@ const CategoryServicesManagement = ({ category, onBack }) => {
               helperText="Enter comma-separated hidden keywords for predictive search (e.g., leak, pipe, water)"
             />
 
-            {/* PRICING UNIT SELECTION */}
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Pricing Unit</InputLabel>
-              <Select
-                value={serviceForm.pricingUnit || "fixed"}
-                label="Pricing Unit"
-                onChange={(e) => setServiceForm({ ...serviceForm, pricingUnit: e.target.value })}
-              >
-                <MenuItem value="fixed">Fixed Price</MenuItem>
-                <MenuItem value="hourly">Per Hour</MenuItem>
-                <MenuItem value="sq_ft">Per Sq. Ft.</MenuItem>
-              </Select>
-            </FormControl>
+            <Box display="flex" flexDirection="column" gap={0} mt={2}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={serviceForm.isActive}
+                    onChange={(e) =>
+                      setServiceForm({ ...serviceForm, isActive: e.target.checked })
+                    }
+                  />
+                }
+                label="Active Service"
+              />
 
-            {/* TAG SELECTION */}
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={serviceForm.isStartingPrice}
+                    onChange={(e) =>
+                      setServiceForm({ ...serviceForm, isStartingPrice: e.target.checked })
+                    }
+                  />
+                }
+                label="Starting Price"
+              />
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={serviceForm.isComingSoon}
+                    onChange={(e) =>
+                      setServiceForm({ ...serviceForm, isComingSoon: e.target.checked })
+                    }
+                    color="primary"
+                  />
+                }
+                label="Coming Soon (VIP Waitlist)"
+              />
+            </Box>
+
+            {/* TAG SELECTION (only show if category has tags) */}
             {category?.tags && category.tags.length > 0 && (
               <FormControl fullWidth margin="normal">
                 <InputLabel>Service Tag (Optional)</InputLabel>
