@@ -31,6 +31,8 @@ import {
   CircularProgress,
   Alert,
   Grid,
+  Switch,
+  FormControlLabel,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -82,6 +84,7 @@ const CategoriesManagement = () => {
     imagePreview: "",
     imageFile: null,
     status: "Active",
+    isComingSoon: false,
     tags: [],
     newTagName: "",
     newTagIcon: "",
@@ -174,6 +177,7 @@ const CategoriesManagement = () => {
         imagePreview: category.image || "",
         imageFile: null,
         status: category.status,
+        isComingSoon: category.isComingSoon || false,
         tags: category.tags || [],
         newTagName: "",
         newTagIcon: "",
@@ -186,6 +190,7 @@ const CategoriesManagement = () => {
         imagePreview: "",
         imageFile: null,
         status: "Active",
+        isComingSoon: false,
         tags: [],
         newTagName: "",
         newTagIcon: "",
@@ -243,6 +248,7 @@ const CategoriesManagement = () => {
       image: "",
       imagePreview: "",
       status: "Active",
+      isComingSoon: false,
       tags: [],
       newTagName: "",
       newTagIcon: "",
@@ -291,6 +297,7 @@ const CategoriesManagement = () => {
         name: categoryForm.name,
         description: categoryForm.description,
         status: categoryForm.status,
+        isComingSoon: categoryForm.isComingSoon,
         slug: slug,
         image: finalImageUrl,
         tags: categoryForm.tags
@@ -844,6 +851,23 @@ const CategoriesManagement = () => {
                     <MenuItem value="Inactive">Inactive</MenuItem>
                   </Select>
                 </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={categoryForm.isComingSoon}
+                      onChange={(e) =>
+                        setCategoryForm({
+                          ...categoryForm,
+                          isComingSoon: e.target.checked,
+                        })
+                      }
+                      color="primary"
+                    />
+                  }
+                  label="Coming Soon (VIP Waitlist)"
+                />
               </Grid>
               <Grid item xs={12}>
                 <Divider sx={{ my: 2 }} />
