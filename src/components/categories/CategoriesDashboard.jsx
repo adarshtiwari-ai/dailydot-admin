@@ -59,9 +59,7 @@ const CategoriesDashboard = ({ onViewCategory }) => {
     description: "",
     icon: "",
     image: "",
-    isActive: true,
-    showOnHome: true,
-    sortOrder: 0,
+    isComingSoon: false,
     tags: [],
     newTagName: "",
     newTagIcon: "",
@@ -114,6 +112,7 @@ const CategoriesDashboard = ({ onViewCategory }) => {
         image: category.image || "",
         isActive: category.isActive !== false,
         showOnHome: category.showOnHome !== false,
+        isComingSoon: category.isComingSoon || false,
         sortOrder: category.sortOrder || 0,
         tags: category.tags || [],
         newTagName: "",
@@ -130,6 +129,7 @@ const CategoriesDashboard = ({ onViewCategory }) => {
         image: "",
         isActive: true,
         showOnHome: true,
+        isComingSoon: false,
         sortOrder: 0,
         tags: [],
         newTagName: "",
@@ -151,6 +151,7 @@ const CategoriesDashboard = ({ onViewCategory }) => {
       image: "",
       isActive: true,
       showOnHome: true,
+      isComingSoon: false,
       sortOrder: 0,
       tags: [],
       newTagName: "",
@@ -226,6 +227,7 @@ const CategoriesDashboard = ({ onViewCategory }) => {
       categoryFormData.append("description", formData.description.trim());
       categoryFormData.append("isActive", formData.isActive);
       categoryFormData.append("showOnHome", formData.showOnHome);
+      categoryFormData.append("isComingSoon", formData.isComingSoon);
       categoryFormData.append("sortOrder", formData.sortOrder || 0);
 
       // Append tags and their icons
@@ -736,6 +738,20 @@ const CategoriesDashboard = ({ onViewCategory }) => {
                   />
                 }
                 label="Show on Home Screen"
+                sx={{ mt: 2, ml: 2 }}
+              />
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.isComingSoon}
+                    onChange={(e) =>
+                      setFormData({ ...formData, isComingSoon: e.target.checked })
+                    }
+                    color="primary"
+                  />
+                }
+                label="Coming Soon (VIP Waitlist)"
                 sx={{ mt: 2, ml: 2 }}
               />
           </Box>
