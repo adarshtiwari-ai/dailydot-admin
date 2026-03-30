@@ -266,6 +266,15 @@ const BookingsManagement = () => {
                         {booking.items && booking.items.length > 0
                           ? booking.items.map((i) => i.name).join(", ")
                           : booking.service?.name || booking.serviceName || "N/A"}
+                        {booking.bookingType === 'consultation' && (
+                          <Chip 
+                            label="Consultation" 
+                            size="small" 
+                            color="info" 
+                            variant="outlined"
+                            sx={{ ml: 1, fontSize: '0.7rem', height: 20 }}
+                          />
+                        )}
                       </TableCell>
                       <TableCell>
                         {booking.userId?.name || booking.name || "Guest"}
@@ -467,7 +476,7 @@ const BookingsManagement = () => {
                   <Typography><strong>Booked On:</strong> {new Date(selectedBooking.createdAt).toLocaleString()}</Typography>
                   <Typography><strong>Scheduled:</strong> {new Date(selectedBooking.scheduledDate).toLocaleDateString()} {selectedBooking.scheduledTime}</Typography>
 
-                  {selectedBooking.assignedPro && (
+                   {selectedBooking.assignedPro && (
                     <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #eee' }}>
                       <Typography variant="subtitle2" color="primary">Assigned Professional</Typography>
                       <Typography><strong>Name:</strong> {selectedBooking.assignedPro.name}</Typography>
@@ -476,6 +485,16 @@ const BookingsManagement = () => {
                   )}
                 </Paper>
               </Grid>
+
+              {/* Consultation Notes */}
+              {selectedBooking.notes && (
+                <Grid item xs={12}>
+                  <Typography variant="h6" gutterBottom sx={{ color: '#1976d2' }}>Customer Query / Notes</Typography>
+                  <Paper variant="outlined" sx={{ p: 2, backgroundColor: '#e3f2fd' }}>
+                    <Typography style={{ whiteSpace: 'pre-line' }}>{selectedBooking.notes}</Typography>
+                  </Paper>
+                </Grid>
+              )}
 
               {/* Address & Receiver Details */}
               <Grid item xs={12}>

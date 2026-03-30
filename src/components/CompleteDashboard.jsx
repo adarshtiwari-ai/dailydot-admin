@@ -14,6 +14,7 @@ import TrendingServicesManager from "./services/TrendingServicesManager";
 import ProviderLedger from "./ProviderLedger";
 import PushNotificationsManagement from "./PushNotificationsManagement";
 import PromotionsManagement from "./PromotionsManagement";
+import WaitlistManagement from "./WaitlistManagement";
 import { analyticsAPI } from "../services/api";
 import socketService from "../services/socket";
 import { Modal, Backdrop, Fade, Box as MuiBox } from "@mui/material";
@@ -129,6 +130,7 @@ const menuItems = [
   { text: "Provider Ledger", icon: LedgerIcon, value: "provider-ledger" },
   { text: "Push Notifications", icon: NotificationsIcon, value: "push-notifications" },
   { text: "Promotions", icon: PromotionsIcon, value: "promotions" },
+  { text: "Demand Center", icon: AnalyticsIcon, value: "waitlist" },
 ];
 
 const StatCard = ({ title, value, growth, icon: StatIcon, color = "#3498db" }) => ( // eslint-disable-line no-unused-vars
@@ -589,6 +591,7 @@ const CompleteDashboard = () => {
       "provider-ledger": "Provider Ledger & Settlements",
       "push-notifications": "Push Notification Broadcast",
       promotions: "Promotions & Discounts",
+      waitlist: "Waitlist & Demand Center",
     };
     return titles[view] || "Dashboard";
   };
@@ -656,6 +659,9 @@ const CompleteDashboard = () => {
 
       case "promotions":
         return <PromotionsManagement />;
+
+      case "waitlist":
+        return <WaitlistManagement />;
 
       default:
         return <DashboardContent />;

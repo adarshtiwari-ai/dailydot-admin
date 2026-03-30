@@ -216,4 +216,9 @@ export const promotionsAPI = {
   delete: (id) => api.delete(`/admin/discounts/${id}`),
 };
 
+// Waitlist API
+export const waitlistAPI = {
+  getAll: () => api.get("/waitlist/all"),
+};
+
 export default api;
