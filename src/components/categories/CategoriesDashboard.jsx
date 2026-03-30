@@ -715,6 +715,7 @@ const CategoriesDashboard = ({ onViewCategory }) => {
               helperText="Display order (0 = first)"
             />
 
+            <Box display="flex" flexDirection="column" gap={0} mt={2}>
               <FormControlLabel
                 control={
                   <Switch
@@ -725,7 +726,6 @@ const CategoriesDashboard = ({ onViewCategory }) => {
                   />
                 }
                 label="Active Category"
-                sx={{ mt: 2 }}
               />
 
               <FormControlLabel
@@ -738,7 +738,6 @@ const CategoriesDashboard = ({ onViewCategory }) => {
                   />
                 }
                 label="Show on Home Screen"
-                sx={{ mt: 2, ml: 2 }}
               />
 
               <FormControlLabel
@@ -752,8 +751,8 @@ const CategoriesDashboard = ({ onViewCategory }) => {
                   />
                 }
                 label="Coming Soon (VIP Waitlist)"
-                sx={{ mt: 2, ml: 2 }}
               />
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions>
