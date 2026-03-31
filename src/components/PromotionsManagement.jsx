@@ -2,26 +2,45 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, Button, Typography, Paper, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, Modal, TextField, 
-  Select, MenuItem, FormControl, InputLabel, Switch, FormControlLabel, Chip 
+  Select, MenuItem, FormControl, InputLabel, Switch, FormControlLabel, 
+  Chip, Grid, Autocomplete, IconButton, Tooltip
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { promotionsAPI } from '../services/api'; // Adjust path if needed
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import ImageIcon from '@mui/icons-material/Image';
+import { promotionsAPI, servicesAPI } from '../services/api'; 
 
 const modalStyle = {
   position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-  width: 400, bgcolor: 'background.paper', borderRadius: 2, boxShadow: 24, p: 4,
+  width: 700, bgcolor: 'background.paper', borderRadius: 3, boxShadow: 24, p: 4,
+  maxHeight: '90vh', overflowY: 'auto'
 };
 
 const PromotionsManagement = () => {
   const [promotions, setPromotions] = useState([]);
+  const [services, setServices] = useState([]);
   const [open, setOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+
   const [formData, setFormData] = useState({
-    name: '', type: 'percentage', value: '', isUniversal: true, isActive: true
+    name: '',
+    code: '',
+    type: 'percentage',
+    value: '',
+    maxDiscountAmount: '',
+    bannerImage: '',
+    isUniversal: true,
+    applicableServices: [],
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: '',
+    isActive: true
   });
 
-  // Fetch Discounts on Load
   useEffect(() => {
     loadPromotions();
+    loadServices();
   }, []);
 
   const loadPromotions = async () => {
@@ -33,95 +52,252 @@ const PromotionsManagement = () => {
     }
   };
 
-  const handleCreate = async () => {
+  const loadServices = async () => {
     try {
-      await promotionsAPI.create({
-        ...formData,
-        value: Number(formData.value)
-      });
-      setOpen(false);
-      loadPromotions(); // Refresh table
-      setFormData({ name: '', type: 'percentage', value: '', isUniversal: true, isActive: true });
+      const response = await servicesAPI.getAll();
+      setServices(response.data.data || []);
     } catch (error) {
-      console.error("Failed to create promotion", error);
+      console.error("Failed to fetch services", error);
+    }
+  };
+
+  const handleOpen = (promo = null) => {
+    if (promo) {
+      setIsEditing(true);
+      setSelectedId(promo._id);
+      setFormData({
+        ...promo,
+        value: promo.value.toString(),
+        maxDiscountAmount: promo.maxDiscountAmount ? promo.maxDiscountAmount.toString() : '',
+        startDate: promo.startDate ? new Date(promo.startDate).toISOString().split('T')[0] : '',
+        endDate: promo.endDate ? new Date(promo.endDate).toISOString().split('T')[0] : '',
+        applicableServices: promo.applicableServices || []
+      });
+    } else {
+      setIsEditing(false);
+      setFormData({
+        name: '', code: '', type: 'percentage', value: '', maxDiscountAmount: '',
+        bannerImage: '', isUniversal: true, applicableServices: [],
+        startDate: new Date().toISOString().split('T')[0], endDate: '', isActive: true
+      });
+    }
+    setOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const payload = {
+        ...formData,
+        code: formData.code.toUpperCase().trim(),
+        value: Number(formData.value),
+        maxDiscountAmount: Number(formData.maxDiscountAmount) || 0,
+        applicableServices: formData.isUniversal ? [] : formData.applicableServices.map(s => s._id || s)
+      };
+
+      if (isEditing) {
+        await promotionsAPI.update(selectedId, payload);
+      } else {
+        await promotionsAPI.create(payload);
+      }
+      
+      setOpen(false);
+      loadPromotions();
+    } catch (error) {
+      alert(error.response?.data?.message || "Operation failed");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this promotion?")) {
+      try {
+        await promotionsAPI.delete(id);
+        loadPromotions();
+      } catch (error) {
+        console.error("Delete failed", error);
+      }
     }
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4" fontWeight="bold">Promotions & Billing</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
-          Create Discount
+    <Box sx={{ p: 4, bgcolor: '#f1f5f9', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4, alignItems: 'center' }}>
+        <Box>
+          <Typography variant="h4" fontWeight="800" color="#1e293b">Promotions Engine</Typography>
+          <Typography variant="body2" color="textSecondary">Manage universal and service-specific discounts</Typography>
+        </Box>
+        <Button 
+          variant="contained" 
+          startIcon={<AddIcon />} 
+          onClick={() => handleOpen()}
+          sx={{ borderRadius: 2, px: 3, py: 1.2, bgcolor: '#2563eb', '&:hover': { bgcolor: '#1d4ed8' } }}
+        >
+          Create New Campaign
         </Button>
       </Box>
 
-      {/* Promotions Data Table */}
-      <TableContainer component={Paper} elevation={2}>
+      <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
         <Table>
           <TableHead sx={{ bgcolor: '#f8fafc' }}>
             <TableRow>
-              <TableCell><b>Name</b></TableCell>
-              <TableCell><b>Type</b></TableCell>
+              <TableCell><b>Campaign & Code</b></TableCell>
               <TableCell><b>Value</b></TableCell>
               <TableCell><b>Scope</b></TableCell>
+              <TableCell><b>Validity</b></TableCell>
               <TableCell><b>Status</b></TableCell>
+              <TableCell align="right"><b>Actions</b></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {promotions.map((promo) => (
-              <TableRow key={promo._id}>
-                <TableCell>{promo.name}</TableCell>
-                <TableCell sx={{ textTransform: 'capitalize' }}>{promo.type}</TableCell>
+              <TableRow key={promo._id} hover>
                 <TableCell>
-                  {promo.type === 'percentage' ? `${promo.value}%` : `₹${promo.value}`}
+                  <Typography variant="subtitle2" fontWeight="bold">{promo.name}</Typography>
+                  <Typography variant="caption" sx={{ fontFamily: 'monospace', bgcolor: '#e2e8f0', px: 0.5, borderRadius: 0.5 }}>
+                    {promo.code}
+                  </Typography>
+                  {promo.bannerImage && (
+                    <Tooltip title="Has Banner Image">
+                      <ImageIcon sx={{ fontSize: 14, ml: 1, color: '#64748b', verticalAlign: 'middle' }} />
+                    </Tooltip>
+                  )}
                 </TableCell>
                 <TableCell>
-                  <Chip size="small" label={promo.isUniversal ? "Universal" : "Specific Services"} color={promo.isUniversal ? "primary" : "default"} />
+                  <Typography variant="body2" fontWeight="600">
+                    {promo.type === 'percentage' ? `${promo.value}%` : `₹${promo.value}`}
+                  </Typography>
+                  {promo.maxDiscountAmount > 0 && (
+                    <Typography variant="caption" color="textSecondary">Capped at ₹{promo.maxDiscountAmount}</Typography>
+                  )}
                 </TableCell>
                 <TableCell>
-                  <Chip size="small" label={promo.isActive ? "Active" : "Disabled"} color={promo.isActive ? "success" : "error"} />
+                  <Chip 
+                    size="small" 
+                    label={promo.isUniversal ? "Universal" : `${promo.applicableServices?.length} Services`} 
+                    variant="outlined"
+                    color={promo.isUniversal ? "primary" : "secondary"}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Typography variant="caption" display="block">
+                    Start: {new Date(promo.startDate).toLocaleDateString()}
+                  </Typography>
+                  <Typography variant="caption" display="block" color={promo.endDate ? "inherit" : "textSecondary"}>
+                    End: {promo.endDate ? new Date(promo.endDate).toLocaleDateString() : 'No expiry'}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Chip 
+                    size="small" 
+                    label={promo.isActive ? "Active" : "Paused"} 
+                    sx={{ bgcolor: promo.isActive ? '#dcfce7' : '#fee2e2', color: promo.isActive ? '#166534' : '#991b1b', fontWeight: 'bold' }}
+                  />
+                </TableCell>
+                <TableCell align="right">
+                  <IconButton size="small" color="primary" onClick={() => handleOpen(promo)}><EditIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" color="error" onClick={() => handleDelete(promo._id)}><DeleteIcon fontSize="small" /></IconButton>
                 </TableCell>
               </TableRow>
             ))}
-            {promotions.length === 0 && (
-              <TableRow><TableCell colSpan={5} align="center">No promotions found.</TableCell></TableRow>
-            )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Create Promotion Modal */}
       <Modal open={open} onClose={() => setOpen(false)}>
         <Box sx={modalStyle}>
-          <Typography variant="h6" mb={2} fontWeight="bold">Create New Discount</Typography>
+          <Typography variant="h5" mb={3} fontWeight="800" color="#1e293b">
+            {isEditing ? 'Edit Promotion' : 'Launch New Campaign'}
+          </Typography>
           
-          <TextField fullWidth label="Discount Name (e.g., Diwali Special)" margin="normal" 
-            value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} 
-          />
-          
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Discount Type</InputLabel>
-            <Select value={formData.type} label="Discount Type"
-              onChange={(e) => setFormData({...formData, type: e.target.value})}
-            >
-              <MenuItem value="percentage">Percentage (%)</MenuItem>
-              <MenuItem value="flat">Flat Amount (₹)</MenuItem>
-            </Select>
-          </FormControl>
-          
-          <TextField fullWidth label="Value" type="number" margin="normal" 
-            value={formData.value} onChange={(e) => setFormData({...formData, value: e.target.value})} 
-          />
-          
-          <FormControlLabel sx={{ mt: 1 }}
-            control={<Switch checked={formData.isUniversal} onChange={(e) => setFormData({...formData, isUniversal: e.target.checked})} />}
-            label="Universal (Applies to all services)"
-          />
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <TextField fullWidth label="Campaign Name" placeholder="e.g. Diwali Flash Sale"
+                value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} 
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField fullWidth label="Promo Code" placeholder="e.g. DIWALI50"
+                value={formData.code} onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})}
+                inputProps={{ style: { textTransform: 'uppercase', fontFamily: 'monospace' } }}
+              />
+            </Grid>
 
-          <Button fullWidth variant="contained" sx={{ mt: 3, py: 1.5 }} onClick={handleCreate} disabled={!formData.name || !formData.value}>
-            Generate Discount
-          </Button>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth>
+                <InputLabel>Type</InputLabel>
+                <Select value={formData.type} label="Type" onChange={(e) => setFormData({...formData, type: e.target.value})}>
+                  <MenuItem value="percentage">Percentage (%)</MenuItem>
+                  <MenuItem value="flat">Flat Amount (₹)</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField fullWidth label="Value" type="number" value={formData.value} onChange={(e) => setFormData({...formData, value: e.target.value})} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField 
+                fullWidth 
+                label="Max Cap (₹)" 
+                type="number" 
+                disabled={formData.type !== 'percentage'}
+                value={formData.maxDiscountAmount} 
+                onChange={(e) => setFormData({...formData, maxDiscountAmount: e.target.value})} 
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField fullWidth label="Banner Image URL" placeholder="Cloudinary link..."
+                value={formData.bannerImage} onChange={(e) => setFormData({...formData, bannerImage: e.target.value})} 
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField fullWidth label="Start Date" type="date" InputLabelProps={{ shrink: true }}
+                value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})} 
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField fullWidth label="End Date (Optional)" type="date" InputLabelProps={{ shrink: true }}
+                value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})} 
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0' }}>
+                <FormControlLabel
+                  control={<Switch checked={formData.isUniversal} onChange={(e) => setFormData({...formData, isUniversal: e.target.checked})} />}
+                  label={<Typography variant="subtitle2">Make this a Universal Discount</Typography>}
+                />
+                
+                {!formData.isUniversal && (
+                  <Box sx={{ mt: 2 }}>
+                    <Autocomplete
+                      multiple
+                      options={services}
+                      getOptionLabel={(option) => option.name}
+                      value={services.filter(s => formData.applicableServices.some(as => (as._id || as) === (s._id || s)))}
+                      onChange={(event, newValue) => setFormData({...formData, applicableServices: newValue})}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Select Applicable Services" placeholder="Search services..." />
+                      )}
+                    />
+                  </Box>
+                )}
+              </Box>
+            </Grid>
+          </Grid>
+
+          <Box sx={{ mt: 4, display: 'flex', gap: 2 }}>
+            <Button fullWidth variant="outlined" onClick={() => setOpen(false)} sx={{ borderRadius: 2, py: 1.5 }}>Cancel</Button>
+            <Button 
+              fullWidth 
+              variant="contained" 
+              onClick={handleSubmit} 
+              disabled={!formData.name || !formData.code || !formData.value}
+              sx={{ borderRadius: 2, py: 1.5, bgcolor: '#2563eb' }}
+            >
+              {isEditing ? 'Save Changes' : 'Launch Campaign'}
+            </Button>
+          </Box>
         </Box>
       </Modal>
     </Box>
