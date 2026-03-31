@@ -189,6 +189,21 @@ const BookingsManagement = () => {
     }
   };
 
+  // Payment status color helper
+  const getPaymentStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "paid":
+        return "success";
+      case "pending":
+        return "warning";
+      case "failed":
+      case "refunded":
+        return "error";
+      default:
+        return "default";
+    }
+  };
+
   // Show loading spinner
   if (loading.bookings) {
     return (
@@ -244,6 +259,9 @@ const BookingsManagement = () => {
                     <strong>Status</strong>
                   </TableCell>
                   <TableCell>
+                    <strong>Payment</strong>
+                  </TableCell>
+                  <TableCell>
                     <strong>Amount</strong>
                   </TableCell>
                   <TableCell>
@@ -288,6 +306,14 @@ const BookingsManagement = () => {
                         <Chip
                           label={booking.status}
                           color={getStatusColor(booking.status)}
+                          size="small"
+                          sx={{ textTransform: 'capitalize' }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={booking.paymentStatus || 'Pending'}
+                          color={getPaymentStatusColor(booking.paymentStatus || 'pending')}
                           size="small"
                           sx={{ textTransform: 'capitalize' }}
                         />
@@ -483,6 +509,44 @@ const BookingsManagement = () => {
                       <Typography><strong>Phone:</strong> {selectedBooking.assignedPro.phone}</Typography>
                     </Box>
                   )}
+                </Paper>
+              </Grid>
+
+              {/* Financial & Payment Summary */}
+              <Grid item xs={12}>
+                <Typography variant="h6" gutterBottom>Financial Summary</Typography>
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f8fafc' }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={4}>
+                      <Typography variant="subtitle2" color="textSecondary">Payment Status</Typography>
+                      <Chip 
+                        label={selectedBooking.paymentStatus || 'Pending'} 
+                        color={getPaymentStatusColor(selectedBooking.paymentStatus || 'pending')}
+                        size="small"
+                        sx={{ mt: 0.5, textTransform: 'capitalize' }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <Typography variant="subtitle2" color="textSecondary">Payment Method</Typography>
+                      <Typography sx={{ textTransform: 'uppercase', fontWeight: 'bold', mt: 0.5 }}>
+                        {selectedBooking.paymentMethod || 'N/A'}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <Typography variant="subtitle2" color="textSecondary">Razorpay Order ID</Typography>
+                      <Typography sx={{ 
+                        fontFamily: 'monospace', 
+                        fontSize: '0.85rem', 
+                        mt: 0.5, 
+                        bgcolor: '#f1f5f9', 
+                        p: 0.5, 
+                        borderRadius: 0.5,
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        {selectedBooking.paymentOrderId || 'Not Available'}
+                      </Typography>
+                    </Grid>
+                  </Grid>
                 </Paper>
               </Grid>
 
