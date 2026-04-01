@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, Button, Typography, Paper, Table, TableBody, TableCell, 
-  TableContainer, TableHead, TableRow, Modal, TextField, 
-  Select, MenuItem, FormControl, InputLabel, Switch, FormControlLabel, 
+import imageCompression from 'browser-image-compression';
+import { uploadToCloudinary } from '../utils/uploadToCloudinary';
+import {
+  Box, Button, Typography, Paper, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Modal, TextField,
+  Select, MenuItem, FormControl, InputLabel, Switch, FormControlLabel,
   Chip, Grid, Autocomplete, IconButton, Tooltip
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import ImageIcon from '@mui/icons-material/Image';
-import { promotionsAPI, servicesAPI } from '../services/api'; 
+import { promotionsAPI, servicesAPI } from '../services/api';
 
 const modalStyle = {
   position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
@@ -31,6 +33,8 @@ const PromotionsManagement = () => {
     value: '',
     maxDiscountAmount: '',
     bannerImage: '',
+    imageFile: null,
+    imagePreview: '',
     isUniversal: true,
     applicableServices: [],
     startDate: new Date().toISOString().split('T')[0],
@@ -69,15 +73,17 @@ const PromotionsManagement = () => {
         ...promo,
         value: promo.value.toString(),
         maxDiscountAmount: promo.maxDiscountAmount ? promo.maxDiscountAmount.toString() : '',
-        startDate: promo.startDate ? new Date(promo.startDate).toISOString().split('T')[0] : '',
-        endDate: promo.endDate ? new Date(promo.endDate).toISOString().split('T')[0] : '',
+        bannerImage: promo.bannerImage || '',
+        imagePreview: promo.bannerImage || '',
+        imageFile: null,
+        isUniversal: promo.isUniversal ?? true,
         applicableServices: promo.applicableServices || []
       });
     } else {
       setIsEditing(false);
       setFormData({
         name: '', code: '', type: 'percentage', value: '', maxDiscountAmount: '',
-        bannerImage: '', isUniversal: true, applicableServices: [],
+        bannerImage: '', imageFile: null, imagePreview: '', isUniversal: true, applicableServices: [],
         startDate: new Date().toISOString().split('T')[0], endDate: '', isActive: true
       });
     }
@@ -86,8 +92,29 @@ const PromotionsManagement = () => {
 
   const handleSubmit = async () => {
     try {
+      let finalBannerUrl = formData.bannerImage;
+
+      // Handle Image Upload if a file is selected
+      if (formData.imageFile) {
+        // 1. Compress Image
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1200,
+          useWebWorker: true
+        };
+        try {
+          const compressedFile = await imageCompression(formData.imageFile, options);
+          // 2. Upload to Cloudinary
+          finalBannerUrl = await uploadToCloudinary(compressedFile);
+        } catch (uploadErr) {
+          console.error("Image Processing Failed:", uploadErr);
+          alert("Failed to upload image. Using fallback URL.");
+        }
+      }
+
       const payload = {
         ...formData,
+        bannerImage: finalBannerUrl,
         code: formData.code.toUpperCase().trim(),
         value: Number(formData.value),
         maxDiscountAmount: Number(formData.maxDiscountAmount) || 0,
@@ -99,7 +126,7 @@ const PromotionsManagement = () => {
       } else {
         await promotionsAPI.create(payload);
       }
-      
+
       setOpen(false);
       loadPromotions();
     } catch (error) {
@@ -125,9 +152,9 @@ const PromotionsManagement = () => {
           <Typography variant="h4" fontWeight="800" color="#1e293b">Promotions Engine</Typography>
           <Typography variant="body2" color="textSecondary">Manage universal and service-specific discounts</Typography>
         </Box>
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />} 
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
           onClick={() => handleOpen()}
           sx={{ borderRadius: 2, px: 3, py: 1.2, bgcolor: '#2563eb', '&:hover': { bgcolor: '#1d4ed8' } }}
         >
@@ -170,9 +197,9 @@ const PromotionsManagement = () => {
                   )}
                 </TableCell>
                 <TableCell>
-                  <Chip 
-                    size="small" 
-                    label={promo.isUniversal ? "Universal" : `${promo.applicableServices?.length} Services`} 
+                  <Chip
+                    size="small"
+                    label={promo.isUniversal ? "Universal" : `${promo.applicableServices?.length} Services`}
                     variant="outlined"
                     color={promo.isUniversal ? "primary" : "secondary"}
                   />
@@ -186,9 +213,9 @@ const PromotionsManagement = () => {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Chip 
-                    size="small" 
-                    label={promo.isActive ? "Active" : "Paused"} 
+                  <Chip
+                    size="small"
+                    label={promo.isActive ? "Active" : "Paused"}
                     sx={{ bgcolor: promo.isActive ? '#dcfce7' : '#fee2e2', color: promo.isActive ? '#166534' : '#991b1b', fontWeight: 'bold' }}
                   />
                 </TableCell>
@@ -207,16 +234,16 @@ const PromotionsManagement = () => {
           <Typography variant="h5" mb={3} fontWeight="800" color="#1e293b">
             {isEditing ? 'Edit Promotion' : 'Launch New Campaign'}
           </Typography>
-          
+
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <TextField fullWidth label="Campaign Name" placeholder="e.g. Diwali Flash Sale"
-                value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField fullWidth label="Promo Code" placeholder="e.g. DIWALI50"
-                value={formData.code} onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})}
+                value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                 inputProps={{ style: { textTransform: 'uppercase', fontFamily: 'monospace' } }}
               />
             </Grid>
@@ -224,50 +251,86 @@ const PromotionsManagement = () => {
             <Grid item xs={12} md={4}>
               <FormControl fullWidth>
                 <InputLabel>Type</InputLabel>
-                <Select value={formData.type} label="Type" onChange={(e) => setFormData({...formData, type: e.target.value})}>
+                <Select value={formData.type} label="Type" onChange={(e) => setFormData({ ...formData, type: e.target.value })}>
                   <MenuItem value="percentage">Percentage (%)</MenuItem>
                   <MenuItem value="flat">Flat Amount (₹)</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} md={4}>
-              <TextField fullWidth label="Value" type="number" value={formData.value} onChange={(e) => setFormData({...formData, value: e.target.value})} />
+              <TextField fullWidth label="Value" type="number" value={formData.value} onChange={(e) => setFormData({ ...formData, value: e.target.value })} />
             </Grid>
             <Grid item xs={12} md={4}>
-              <TextField 
-                fullWidth 
-                label="Max Cap (₹)" 
-                type="number" 
+              <TextField
+                fullWidth
+                label="Max Cap (₹)"
+                type="number"
                 disabled={formData.type !== 'percentage'}
-                value={formData.maxDiscountAmount} 
-                onChange={(e) => setFormData({...formData, maxDiscountAmount: e.target.value})} 
+                value={formData.maxDiscountAmount}
+                onChange={(e) => setFormData({ ...formData, maxDiscountAmount: e.target.value })}
               />
             </Grid>
 
             <Grid item xs={12}>
-              <TextField fullWidth label="Banner Image URL" placeholder="Cloudinary link..."
-                value={formData.bannerImage} onChange={(e) => setFormData({...formData, bannerImage: e.target.value})} 
-              />
+              <Box sx={{ mt: 1, p: 2, border: '1px solid #e2e8f0', borderRadius: 2, bgcolor: '#f8fafc' }}>
+                <Typography variant="subtitle2" gutterBottom color="#475569">Campaign Banner Image</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
+                  {formData.imagePreview ? (
+                    <Box
+                      component="img"
+                      src={formData.imagePreview}
+                      sx={{ width: 120, height: 60, objectFit: 'cover', borderRadius: 1, border: '1px solid #cbd5e1' }}
+                    />
+                  ) : (
+                    <Box sx={{ width: 120, height: 60, bgcolor: '#e2e8f0', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ImageIcon sx={{ color: '#94a3b8' }} />
+                    </Box>
+                  )}
+                  <Box>
+                    <Button variant="outlined" component="label" size="small" sx={{ textTransform: 'none' }}>
+                      {formData.imagePreview ? 'Change Image' : 'Upload Banner'}
+                      <input
+                        type="file"
+                        hidden
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            setFormData({
+                              ...formData,
+                              imageFile: file,
+                              imagePreview: URL.createObjectURL(file)
+                            });
+                          }
+                        }}
+                      />
+                    </Button>
+                    <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 0.5 }}>
+                      Recommended: 1200x600px (Max 1MB)
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
             </Grid>
 
             <Grid item xs={12} md={6}>
               <TextField fullWidth label="Start Date" type="date" InputLabelProps={{ shrink: true }}
-                value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})} 
+                value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
               />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField fullWidth label="End Date (Optional)" type="date" InputLabelProps={{ shrink: true }}
-                value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})} 
+                value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
               />
             </Grid>
 
             <Grid item xs={12}>
               <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0' }}>
                 <FormControlLabel
-                  control={<Switch checked={formData.isUniversal} onChange={(e) => setFormData({...formData, isUniversal: e.target.checked})} />}
+                  control={<Switch checked={formData.isUniversal} onChange={(e) => setFormData({ ...formData, isUniversal: e.target.checked })} />}
                   label={<Typography variant="subtitle2">Make this a Universal Discount</Typography>}
                 />
-                
+
                 {!formData.isUniversal && (
                   <Box sx={{ mt: 2 }}>
                     <Autocomplete
@@ -275,7 +338,7 @@ const PromotionsManagement = () => {
                       options={services}
                       getOptionLabel={(option) => option.name}
                       value={services.filter(s => formData.applicableServices.some(as => (as._id || as) === (s._id || s)))}
-                      onChange={(event, newValue) => setFormData({...formData, applicableServices: newValue})}
+                      onChange={(event, newValue) => setFormData({ ...formData, applicableServices: newValue })}
                       renderInput={(params) => (
                         <TextField {...params} label="Select Applicable Services" placeholder="Search services..." />
                       )}
@@ -288,10 +351,10 @@ const PromotionsManagement = () => {
 
           <Box sx={{ mt: 4, display: 'flex', gap: 2 }}>
             <Button fullWidth variant="outlined" onClick={() => setOpen(false)} sx={{ borderRadius: 2, py: 1.5 }}>Cancel</Button>
-            <Button 
-              fullWidth 
-              variant="contained" 
-              onClick={handleSubmit} 
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={handleSubmit}
               disabled={!formData.name || !formData.code || !formData.value}
               sx={{ borderRadius: 2, py: 1.5, bgcolor: '#2563eb' }}
             >
