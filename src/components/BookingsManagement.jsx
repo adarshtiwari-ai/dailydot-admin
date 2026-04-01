@@ -59,11 +59,21 @@ const BookingsManagement = () => {
   const [materialCost, setMaterialCost] = useState("");
   const [customDiscountName, setCustomDiscountName] = useState("");
   const [customDiscountAmount, setCustomDiscountAmount] = useState("");
-  
+
   // Settlement Specific States
   const [settlementMaterialCost, setSettlementMaterialCost] = useState("");
   const [settlementAdminCommission, setSettlementAdminCommission] = useState("");
   const [customTaxRate, setCustomTaxRate] = useState("18"); // Default 18%
+
+  // Service Request States
+  const [quotedTotal, setQuotedTotal] = useState("");
+  const [adminQuoteNotes, setAdminQuoteNotes] = useState("");
+  const [isSubmittingQuote, setIsSubmittingQuote] = useState(false);
+
+  // Payment recording states
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [isRecordingPayment, setIsRecordingPayment] = useState(false);
 
   // Fetch bookings when component loads
   useEffect(() => {
@@ -160,7 +170,7 @@ const BookingsManagement = () => {
           name: `Discount: ${customDiscountName}`,
           cost: -Math.round(Number(customDiscountAmount) * 100) // Scale to subunits (Negative for discount)
         })).unwrap();
-        
+
         setCustomDiscountName("");
         setCustomDiscountAmount("");
         dispatch(fetchBookings());
@@ -173,13 +183,61 @@ const BookingsManagement = () => {
     }
   };
 
+  const handleSubmitQuote = async () => {
+    if (!selectedBooking || !quotedTotal) return;
+    setIsSubmittingQuote(true);
+    try {
+      const response = await axiosInstance.post(`/admin/bookings/${selectedBooking._id || selectedBooking.id}/submit-quote`, {
+        totalAmount: Math.round(Number(quotedTotal) * 100),
+        notes: adminQuoteNotes
+      });
+      if (response.data.success) {
+        alert("Quote submitted to user!");
+        setQuotedTotal("");
+        setAdminQuoteNotes("");
+        dispatch(fetchBookings());
+        handleCloseDialog();
+      }
+    } catch (err) {
+      alert(`Quote failed: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setIsSubmittingQuote(false);
+    }
+  };
+
+  const handleRecordPayment = async () => {
+    if (!selectedBooking || !paymentAmount) return;
+    setIsRecordingPayment(true);
+    try {
+      const response = await axiosInstance.post(`/bookings/${selectedBooking._id || selectedBooking.id}/record-payment`, {
+        amount: Math.round(Number(paymentAmount) * 100),
+        method: paymentMethod
+      });
+      if (response.data.success) {
+        alert("Payment recorded!");
+        setPaymentAmount("");
+        dispatch(fetchBookings());
+        // Refresh local view
+        const updatedResponse = await axiosInstance.get(`/bookings/${selectedBooking._id || selectedBooking.id}`);
+        setSelectedBooking(updatedResponse.data.booking);
+      }
+    } catch (err) {
+      alert(`Payment recording failed: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setIsRecordingPayment(false);
+    }
+  };
+
   // Status color helper
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case "pending":
+      case "pending_visit":
         return "warning";
       case "confirmed":
+      case "quote_sent":
         return "info";
+      case "approved":
       case "completed":
         return "success";
       case "cancelled":
@@ -285,10 +343,10 @@ const BookingsManagement = () => {
                           ? booking.items.map((i) => i.name).join(", ")
                           : booking.service?.name || booking.serviceName || "N/A"}
                         {booking.bookingType === 'consultation' && (
-                          <Chip 
-                            label="Consultation" 
-                            size="small" 
-                            color="info" 
+                          <Chip
+                            label="Consultation"
+                            size="small"
+                            color="info"
                             variant="outlined"
                             sx={{ ml: 1, fontSize: '0.7rem', height: 20 }}
                           />
@@ -304,8 +362,8 @@ const BookingsManagement = () => {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={booking.status}
-                          color={getStatusColor(booking.status)}
+                          label={booking.billingStatus || booking.status}
+                          color={getStatusColor(booking.billingStatus || booking.status)}
                           size="small"
                           sx={{ textTransform: 'capitalize' }}
                         />
@@ -459,24 +517,24 @@ const BookingsManagement = () => {
                   <Typography variant="subtitle2" color="error.main" sx={{ minWidth: 120 }}>
                     Apply Ad-Hoc Discount:
                   </Typography>
-                  <TextField 
-                    size="small" 
-                    label="Reason (e.g., Apology)" 
+                  <TextField
+                    size="small"
+                    label="Reason (e.g., Apology)"
                     sx={{ flexGrow: 1 }}
-                    value={customDiscountName} 
+                    value={customDiscountName}
                     onChange={(e) => setCustomDiscountName(e.target.value)}
                   />
-                  <TextField 
-                    size="small" 
-                    type="number" 
-                    label="Amount (₹)" 
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Amount (₹)"
                     sx={{ width: 120 }}
-                    value={customDiscountAmount} 
+                    value={customDiscountAmount}
                     onChange={(e) => setCustomDiscountAmount(e.target.value)}
                   />
-                  <Button 
-                    variant="contained" 
-                    color="error" 
+                  <Button
+                    variant="contained"
+                    color="error"
                     onClick={handleApplyCustomDiscount}
                     disabled={!customDiscountName || !customDiscountAmount || loading.updating}
                   >
@@ -502,7 +560,7 @@ const BookingsManagement = () => {
                   <Typography><strong>Booked On:</strong> {new Date(selectedBooking.createdAt).toLocaleString()}</Typography>
                   <Typography><strong>Scheduled:</strong> {new Date(selectedBooking.scheduledDate).toLocaleDateString()} {selectedBooking.scheduledTime}</Typography>
 
-                   {selectedBooking.assignedPro && (
+                  {selectedBooking.assignedPro && (
                     <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #eee' }}>
                       <Typography variant="subtitle2" color="primary">Assigned Professional</Typography>
                       <Typography><strong>Name:</strong> {selectedBooking.assignedPro.name}</Typography>
@@ -519,8 +577,8 @@ const BookingsManagement = () => {
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={4}>
                       <Typography variant="subtitle2" color="textSecondary">Payment Status</Typography>
-                      <Chip 
-                        label={selectedBooking.paymentStatus || 'Pending'} 
+                      <Chip
+                        label={selectedBooking.paymentStatus || 'Pending'}
                         color={getPaymentStatusColor(selectedBooking.paymentStatus || 'pending')}
                         size="small"
                         sx={{ mt: 0.5, textTransform: 'capitalize' }}
@@ -534,12 +592,12 @@ const BookingsManagement = () => {
                     </Grid>
                     <Grid item xs={12} md={4}>
                       <Typography variant="subtitle2" color="textSecondary">Razorpay Order ID</Typography>
-                      <Typography sx={{ 
-                        fontFamily: 'monospace', 
-                        fontSize: '0.85rem', 
-                        mt: 0.5, 
-                        bgcolor: '#f1f5f9', 
-                        p: 0.5, 
+                      <Typography sx={{
+                        fontFamily: 'monospace',
+                        fontSize: '0.85rem',
+                        mt: 0.5,
+                        bgcolor: '#f1f5f9',
+                        p: 0.5,
                         borderRadius: 0.5,
                         border: '1px solid #e2e8f0'
                       }}>
@@ -560,7 +618,7 @@ const BookingsManagement = () => {
                 </Grid>
               )}
 
-              {/* Address & Receiver Details */}
+              {/* Service Location & Contact */}
               <Grid item xs={12}>
                 <Typography variant="h6" gutterBottom>Service Location & Contact</Typography>
                 <Paper variant="outlined" sx={{ p: 2 }}>
@@ -578,6 +636,99 @@ const BookingsManagement = () => {
                       <Typography><strong>Phone:</strong> {selectedBooking.serviceAddress?.receiverPhone || "Same as Customer"}</Typography>
                     </Grid>
                   </Grid>
+                </Paper>
+              </Grid>
+
+              {/* SERVICE REQUEST TOOLING (Quoting & Payments) */}
+              <Grid item xs={12}>
+                <Typography variant="h6" gutterBottom color="primary">Service Agreement Tools</Typography>
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f0f9ff' }}>
+                  <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography>Current Billing Status: <strong>{selectedBooking.billingStatus?.toUpperCase() || 'LEGACY_FIXED_PRICE'}</strong></Typography>
+                    <Chip
+                      label={selectedBooking.billingStatus || 'N/A'}
+                      color={getStatusColor(selectedBooking.billingStatus)}
+                      size="small"
+                    />
+                  </Box>
+
+                  {/* STEP 1: SUBMIT QUOTE (For pending_visit) */}
+                  {selectedBooking.billingStatus === 'pending_visit' && (
+                    <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid #bae6fd' }}>
+                      <Typography variant="subtitle2" gutterBottom>Generate Final Quote</Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={4}>
+                          <TextField
+                            fullWidth label="Final Quote Amount (₹)" size="small" type="number"
+                            value={quotedTotal} onChange={(e) => setQuotedTotal(e.target.value)}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={8}>
+                          <TextField
+                            fullWidth label="Admin Notes (Sent to User)" size="small"
+                            value={adminQuoteNotes} onChange={(e) => setAdminQuoteNotes(e.target.value)}
+                          />
+                        </Grid>
+                      </Grid>
+                      <Button
+                        variant="contained" fullWidth sx={{ mt: 2 }}
+                        onClick={handleSubmitQuote} disabled={!quotedTotal || isSubmittingQuote}
+                      >
+                        {isSubmittingQuote ? "Sending..." : "Push Quote to User"}
+                      </Button>
+                    </Box>
+                  )}
+
+                  {/* STEP 2: RECORD PAYMENT (For approved) */}
+                  {selectedBooking.billingStatus === 'approved' && (
+                    <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid #bbf7d0' }}>
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2">Record/Request Installment</Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          Approved Quote: ₹{formatCurrency(selectedBooking.quote?.total || 0)} |
+                          Paid: ₹{formatCurrency(selectedBooking.installments?.reduce((s, i) => s + i.amount, 0) || 0)}
+                        </Typography>
+                      </Box>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={5}>
+                          <TextField
+                            fullWidth label="Payment Amount (₹)" size="small" type="number"
+                            value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <FormControl fullWidth size="small">
+                            <InputLabel>Method</InputLabel>
+                            <Select value={paymentMethod} label="Method" onChange={(e) => setPaymentMethod(e.target.value)}>
+                              <MenuItem value="cash">Cash / Offline</MenuItem>
+                              <MenuItem value="online_request">Online Request (Mobile)</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                        <Grid item xs={12} md={3}>
+                          <Button
+                            variant="contained" color="success" fullWidth
+                            onClick={handleRecordPayment} disabled={!paymentAmount || isRecordingPayment}
+                          >
+                            Add
+                          </Button>
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  )}
+
+                  {/* Ledger Display */}
+                  {selectedBooking.installments && selectedBooking.installments.length > 0 && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 'bold' }}>Payment Ledger:</Typography>
+                      {selectedBooking.installments.map((inst, idx) => (
+                        <Box key={idx} sx={{ display: 'flex', justifyContent: 'space-between', px: 1, py: 0.5, borderBottom: '1px solid #e2e8f0' }}>
+                          <Typography variant="caption">{new Date(inst.paidAt).toLocaleDateString()} - {inst.method}</Typography>
+                          <Typography variant="caption" sx={{ fontWeight: 'bold' }}>₹{formatCurrency(inst.amount)}</Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
                 </Paper>
               </Grid>
 
@@ -657,7 +808,7 @@ const BookingsManagement = () => {
                     <Typography variant="caption" display="block" sx={{ mb: 2, color: "text.secondary" }}>
                       Input final costs and commission to calculate provider payout and net profit.
                     </Typography>
-                    
+
                     <Grid container spacing={2} alignItems="center">
                       <Grid item xs={12} md={4}>
                         <TextField
@@ -704,7 +855,7 @@ const BookingsManagement = () => {
                             <Typography variant="caption" color="textSecondary">Live Payout Preview</Typography>
                             <Typography variant="h6" color="primary.main">
                               ₹{formatCurrency(
-                                (Number(selectedBooking.baseCost || 0)) + 
+                                (Number(selectedBooking.baseCost || 0)) +
                                 (Math.round(Number(selectedBooking.baseCost) * (Number(customTaxRate) / 100))) +
                                 (Number(selectedBooking.totalDynamicFees) || 0) -
                                 (Math.round(Number(settlementAdminCommission) * 100) || 0)
@@ -714,7 +865,7 @@ const BookingsManagement = () => {
                         </Box>
                       </Grid>
                     </Grid>
-                    
+
                     <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #c6f6d5', display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="body2"><strong>Total Bill:</strong> ₹{formatCurrency(selectedBooking.finalTotal || selectedBooking.totalAmount)}</Typography>
                       <Typography variant="body2" color="success.main"><strong>Net Platform Profit:</strong> ₹{formatCurrency(Number(settlementAdminCommission) || 0)}</Typography>
@@ -740,7 +891,7 @@ const BookingsManagement = () => {
               <Grid item xs={12}>
                 <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', marginTop: '16px', color: '#1f2937', fontFamily: 'sans-serif' }}>
                   <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#111827' }}>Customer Bill Breakdown</h3>
-                  
+
                   {/* Services (Base Cost) */}
                   {selectedBooking.items && selectedBooking.items.map((item, idx) => (
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
@@ -792,23 +943,23 @@ const BookingsManagement = () => {
                   {selectedBooking.isSettled && (
                     <div style={{ padding: '12px', backgroundColor: '#ecfdf5', borderRadius: '6px', marginTop: '16px', border: '1px solid #10b981' }}>
                       <h4 style={{ margin: '0 0 8px 0', color: '#065f46', fontSize: '0.95rem' }}>Internal Admin Ledger</h4>
-                      
+
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: '#065f46' }}>
                         <span>Internal Material Cost</span>
                         <span>₹{formatCurrency(selectedBooking.materialCost || 0)}</span>
                       </div>
-                      
+
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: '#065f46' }}>
                         <span style={{ fontWeight: '600' }}>Platform Profit</span>
                         <span>₹{formatCurrency(selectedBooking.netPlatformProfit || selectedBooking.adminCommission || 0)}</span>
                       </div>
-                      
+
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#065f46', borderTop: '1px dashed #10b981', paddingTop: '4px', marginTop: '4px' }}>
                         <span style={{ fontWeight: 'bold' }}>Provider Payout</span>
                         <span style={{ fontWeight: 'bold' }}>
                           ₹{formatCurrency(
-                            (selectedBooking.finalTotal || selectedBooking.totalAmount || selectedBooking.totalPrice || 0) - 
-                            (selectedBooking.materialCost || 0) - 
+                            (selectedBooking.finalTotal || selectedBooking.totalAmount || selectedBooking.totalPrice || 0) -
+                            (selectedBooking.materialCost || 0) -
                             (selectedBooking.netPlatformProfit || selectedBooking.adminCommission || 0)
                           )}
                         </span>
