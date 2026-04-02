@@ -69,6 +69,7 @@ const BookingsManagement = () => {
   const [draftFinalTotal, setDraftFinalTotal] = useState(0); // Read-only from Server (in Paise)
   const [draftBreakdown, setDraftBreakdown] = useState({ platformFee: 0, taxAmount: 0, appliedFees: [] });
   const [initialDraftState, setInitialDraftState] = useState({ materials: [], quote: "" });
+  const [isCalculating, setIsCalculating] = useState(false);
 
   // Settlement Specific States
   const [settlementMaterialCost, setSettlementMaterialCost] = useState("");
@@ -131,6 +132,7 @@ const BookingsManagement = () => {
     if (openDialog && selectedBooking && draftBasePrice !== undefined) {
       const getCalculatedTotal = async () => {
         try {
+          setIsCalculating(true);
           const response = await axiosInstance.post("/bookings/calculate", {
             baseCost: Math.round(Number(draftBasePrice) * 100),
             bestCostTotal: bestCostTotal, // Isolated taxing base
@@ -145,6 +147,8 @@ const BookingsManagement = () => {
           }
         } catch (err) {
           console.error("Pricing calc failed:", err);
+        } finally {
+          setIsCalculating(false);
         }
       };
 
@@ -858,9 +862,10 @@ const BookingsManagement = () => {
                       <Button
                         variant="contained" fullWidth sx={{ mt: 2, py: 1.5, fontWeight: 'bold' }}
                         color="success"
-                        onClick={handleSubmitMasterUpdate} disabled={!draftFinalTotal || isSubmittingQuote}
+                        onClick={handleSubmitMasterUpdate} 
+                        disabled={!draftFinalTotal || isSubmittingQuote || isCalculating}
                       >
-                        {isSubmittingQuote ? "Saving & Notifying..." : "Save Draft & Send Update to Customer"}
+                        {isSubmittingQuote ? "Saving & Notifying..." : isCalculating ? "Calculating Fees..." : "Save Draft & Send Update to Customer"}
                       </Button>
                     </Box>
                   )}
