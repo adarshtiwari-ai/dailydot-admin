@@ -65,7 +65,9 @@ const BookingsManagement = () => {
   // Draft State for Workspace (Non-Committal)
   const [draftMaterials, setDraftMaterials] = useState([]);
   const [draftDiscount, setDraftDiscount] = useState(0); // in paise
-  const [draftQuoteAmount, setDraftQuoteAmount] = useState(""); // in Rupees (as string for input)
+  const [draftBasePrice, setDraftBasePrice] = useState(""); // Editable Base in Rupees (as string)
+  const [draftFinalTotal, setDraftFinalTotal] = useState(0); // Read-only from Server (in Paise)
+  const [draftBreakdown, setDraftBreakdown] = useState({ platformFee: 0, taxAmount: 0, appliedFees: [] });
   const [initialDraftState, setInitialDraftState] = useState({ materials: [], quote: "" });
 
   // Settlement Specific States
@@ -122,15 +124,41 @@ const BookingsManagement = () => {
     const initialMats = [...(booking.materials || [])];
     setDraftMaterials(initialMats);
     setDraftDiscount(0);
-    setDraftQuoteAmount(initialQuote);
+    setDraftBasePrice(initialQuote);
     setInitialDraftState({ materials: initialMats, quote: initialQuote });
     
     setOpenDialog(true);
   };
 
+  // --- Dynamic Pricing Hook (Server-Authoritative) ---
+  useEffect(() => {
+    if (openDialog && selectedBooking && draftBasePrice !== undefined) {
+      const getCalculatedTotal = async () => {
+        try {
+          const response = await axiosInstance.post("/bookings/calculate", {
+            baseCost: Math.round(Number(draftBasePrice) * 100),
+            items: selectedBooking.items || [],
+            materials: draftMaterials,
+            adjustments: draftDiscount > 0 ? [{ reason: "Adjustment", amount: -draftDiscount }] : []
+          });
+          if (response.data.success) {
+            const { finalTotal, platformFee, taxAmount, appliedFees } = response.data.receipt;
+            setDraftFinalTotal(finalTotal);
+            setDraftBreakdown({ platformFee, taxAmount, appliedFees });
+          }
+        } catch (err) {
+          console.error("Pricing calc failed:", err);
+        }
+      };
+
+      const debounceTimer = setTimeout(getCalculatedTotal, 500);
+      return () => clearTimeout(debounceTimer);
+    }
+  }, [draftBasePrice, draftMaterials, draftDiscount, openDialog]);
+
   const handleCloseDialog = () => {
     const hasMaterialsChanged = draftMaterials.length !== initialDraftState.materials.length;
-    const hasQuoteChanged = draftQuoteAmount !== initialDraftState.quote;
+    const hasQuoteChanged = draftBasePrice !== initialDraftState.quote;
     const hasDiscount = draftDiscount > 0;
 
     if (hasMaterialsChanged || hasQuoteChanged || hasDiscount) {
@@ -207,7 +235,7 @@ const BookingsManagement = () => {
   };
 
   const handleSubmitMasterUpdate = async () => {
-    if (!selectedBooking || !draftQuoteAmount) return;
+    if (!selectedBooking || !draftFinalTotal) return;
     setIsSubmittingQuote(true);
     try {
       const bookingId = selectedBooking._id || selectedBooking.id;
@@ -228,16 +256,15 @@ const BookingsManagement = () => {
         });
       }
 
-      // 3. Submit Final Quote
-      const finalTotalInPaise = Math.round(Number(draftQuoteAmount) * 100);
+      // 3. Submit Final Quote (DICTATED BY SERVER CALCULATION)
       const response = await axiosInstance.post(`/admin/bookings/${bookingId}/submit-quote`, {
-        totalAmount: finalTotalInPaise,
+        totalAmount: draftFinalTotal,
         notes: adminQuoteNotes
       });
 
       if (response.data.success) {
         alert("Quote and materials saved successfully!");
-        setInitialDraftState({ materials: draftMaterials, quote: draftQuoteAmount });
+        setInitialDraftState({ materials: draftMaterials, quote: draftBasePrice });
         setDraftDiscount(0);
         dispatch(fetchBookings());
         // Reload local booking data
@@ -567,7 +594,24 @@ const BookingsManagement = () => {
                             <TableCell colSpan={2} align="center">No additional materials added.</TableCell>
                           </TableRow>
                         )}
-                        {/* Draft Preview Row */}
+                        {/* Draft Preview Items */}
+                        {draftBreakdown.platformFee > 0 && (
+                          <TableRow>
+                            <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>Platform Convenience Fee (10%)</TableCell>
+                            <TableCell align="right" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+                              ₹{formatCurrency(draftBreakdown.platformFee)}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {draftBreakdown.taxAmount > 0 && (
+                          <TableRow>
+                            <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>GST (18%)</TableCell>
+                            <TableCell align="right" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+                              ₹{formatCurrency(draftBreakdown.taxAmount)}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {/* Draft Preview Row (Subtotal of Staged changes) */}
                         {(draftMaterials.length > 0 || draftDiscount > 0) && (
                           <TableRow sx={{ bgcolor: '#fff7ed' }}>
                             <TableCell align="right" sx={{ fontWeight: 'bold' }}>Staged Change Sum</TableCell>
@@ -576,6 +620,13 @@ const BookingsManagement = () => {
                             </TableCell>
                           </TableRow>
                         )}
+                        {/* Final Authoritative Total */}
+                        <TableRow sx={{ bgcolor: '#f0fdf4' }}>
+                          <TableCell align="right" sx={{ fontWeight: 'bold', color: 'success.main' }}>Calculated Grand Total</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 'bold', color: 'success.main', fontSize: '1.1rem' }}>
+                            ₹{formatCurrency(draftFinalTotal)}
+                          </TableCell>
+                        </TableRow>
                       </TableBody>
                     </Table>
                   </TableContainer>
@@ -751,9 +802,9 @@ const BookingsManagement = () => {
                       <Grid container spacing={2} sx={{ mb: 2 }}>
                         <Grid item xs={12} md={6}>
                           <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f0fdf4' }}>
-                            <Typography variant="caption" color="textSecondary">Current Draft Total</Typography>
+                            <Typography variant="caption" color="textSecondary">Final Grand Total (Read-Only)</Typography>
                             <Typography variant="h5" color="success.main">
-                              ₹{formatCurrency(Math.round(Number(draftQuoteAmount || 0) * 100))}
+                              ₹{formatCurrency(draftFinalTotal)}
                             </Typography>
                           </Paper>
                         </Grid>
@@ -770,14 +821,23 @@ const BookingsManagement = () => {
                       <Grid container spacing={2}>
                         <Grid item xs={12} md={4}>
                           <TextField
-                            fullWidth label="Adjusted Final Quote (₹)" size="small" type="number"
-                            value={draftQuoteAmount} onChange={(e) => setDraftQuoteAmount(e.target.value)}
-                            helperText="This is what the customer will see."
+                            fullWidth label="Adjusted Base Price (₹)" size="small" type="number"
+                            value={draftBasePrice} onChange={(e) => setDraftBasePrice(e.target.value)}
+                            helperText="Adjust the core service price before fees."
                           />
                         </Grid>
-                        <Grid item xs={12} md={8}>
+                        <Grid item xs={12} md={4}>
                           <TextField
-                            fullWidth label="Optional Notes for Customer" size="small"
+                            fullWidth label="Calculated Quote (Read-Only)" size="small"
+                            value={formatCurrency(draftFinalTotal)}
+                            disabled
+                            InputProps={{ readOnly: true }}
+                            helperText="Calculated by server (Includes GST & Fees)"
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <TextField
+                            fullWidth label="Optional Notes" size="small"
                             value={adminQuoteNotes} onChange={(e) => setAdminQuoteNotes(e.target.value)}
                           />
                         </Grid>
@@ -785,7 +845,7 @@ const BookingsManagement = () => {
                       <Button
                         variant="contained" fullWidth sx={{ mt: 2, py: 1.5, fontWeight: 'bold' }}
                         color="success"
-                        onClick={handleSubmitMasterUpdate} disabled={!draftQuoteAmount || isSubmittingQuote}
+                        onClick={handleSubmitMasterUpdate} disabled={!draftFinalTotal || isSubmittingQuote}
                       >
                         {isSubmittingQuote ? "Saving & Notifying..." : "Save Draft & Send Update to Customer"}
                       </Button>
