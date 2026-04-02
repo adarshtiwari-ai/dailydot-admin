@@ -1319,6 +1319,14 @@ const BookingsManagement = () => {
                     </div>
                   ))}
 
+                  {/* Explicit Tax (GST) Row */}
+                  {(selectedBooking.taxAmount > 0 || selectedBooking.quote?.tax > 0) && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280' }}>
+                      <span>Tax ({(selectedBooking.quote?.taxRate || 0.18) * 100}% GST)</span>
+                      <span>₹{formatCurrency(selectedBooking.taxAmount || selectedBooking.quote?.tax || 0)}</span>
+                    </div>
+                  )}
+
                   {/* Dynamic Discounts */}
                   {selectedBooking.appliedDiscounts && selectedBooking.appliedDiscounts.length > 0 && selectedBooking.appliedDiscounts.map((discount, idx) => (
                     <div key={`disc-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#ef4444', fontWeight: 'bold' }}>
