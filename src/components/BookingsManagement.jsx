@@ -26,8 +26,10 @@ import {
   InputLabel,
   FormControl,
   Autocomplete,
+  IconButton,
 } from "@mui/material";
 import TextField from "@mui/material/TextField";
+import DeleteIcon from "@mui/icons-material/Delete";
 import BookingAdjustmentModal from "./BookingAdjustmentModal";
 import { formatCurrency } from "../utils/currency";
 import axiosInstance from "../services/api.service";
@@ -59,6 +61,12 @@ const BookingsManagement = () => {
   const [materialCost, setMaterialCost] = useState("");
   const [customDiscountName, setCustomDiscountName] = useState("");
   const [customDiscountAmount, setCustomDiscountAmount] = useState("");
+
+  // Draft State for Workspace (Non-Committal)
+  const [draftMaterials, setDraftMaterials] = useState([]);
+  const [draftDiscount, setDraftDiscount] = useState(0); // in paise
+  const [draftQuoteAmount, setDraftQuoteAmount] = useState(""); // in Rupees (as string for input)
+  const [initialDraftState, setInitialDraftState] = useState({ materials: [], quote: "" });
 
   // Settlement Specific States
   const [settlementMaterialCost, setSettlementMaterialCost] = useState("");
@@ -108,10 +116,28 @@ const BookingsManagement = () => {
     setSettlementMaterialCost("");
     setSettlementAdminCommission("");
     setCustomTaxRate("18");
+    
+    // Initialize Draft State
+    const initialQuote = booking.totalAmount ? (booking.totalAmount / 100).toString() : "";
+    const initialMats = [...(booking.materials || [])];
+    setDraftMaterials(initialMats);
+    setDraftDiscount(0);
+    setDraftQuoteAmount(initialQuote);
+    setInitialDraftState({ materials: initialMats, quote: initialQuote });
+    
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
+    const hasMaterialsChanged = draftMaterials.length !== initialDraftState.materials.length;
+    const hasQuoteChanged = draftQuoteAmount !== initialDraftState.quote;
+    const hasDiscount = draftDiscount > 0;
+
+    if (hasMaterialsChanged || hasQuoteChanged || hasDiscount) {
+      if (!window.confirm("You have unsaved draft changes. These will be lost. Are you sure you want to close?")) {
+        return;
+      }
+    }
     setOpenDialog(false);
     setSelectedBooking(null);
   };
@@ -152,16 +178,95 @@ const BookingsManagement = () => {
     }
   };
 
+  const handleAddMaterial = () => {
+    if (materialName && materialCost) {
+      const newMaterial = {
+        name: materialName,
+        cost: Math.round(Number(materialCost) * 100) // Keep in paise internally
+      };
+      setDraftMaterials([...draftMaterials, newMaterial]);
+      setMaterialName("");
+      setMaterialCost("");
+    }
+  };
+
+  const handleRemoveMaterial = (index) => {
+    const newList = [...draftMaterials];
+    newList.splice(index, 1);
+    setDraftMaterials(newList);
+  };
+
+  const handleApplyCustomDiscount = () => {
+    if (customDiscountAmount) {
+      const discountVal = Math.round(Number(customDiscountAmount) * 100);
+      setDraftDiscount(discountVal);
+      // We don't add to materials array here yet, we just stage the discount value
+      // or we could add it as a negative material. Let's stick to the staged discount value
+      // as requested in the plan.
+    }
+  };
+
+  const handleSubmitMasterUpdate = async () => {
+    if (!selectedBooking || !draftQuoteAmount) return;
+    setIsSubmittingQuote(true);
+    try {
+      const bookingId = selectedBooking._id || selectedBooking.id;
+
+      // 1. Add NEW staged materials (Strict Halt on failure)
+      const existingMaterialKeys = new Set((selectedBooking.materials || []).map(m => `${m.name}-${m.cost}`));
+      const newMaterials = draftMaterials.filter(m => !existingMaterialKeys.has(`${m.name}-${m.cost}`));
+
+      for (const mat of newMaterials) {
+        await axiosInstance.post(`/admin/bookings/${bookingId}/materials`, mat);
+      }
+
+      // 2. Apply Staged Discount if any (as a negative material)
+      if (draftDiscount > 0) {
+        await axiosInstance.post(`/admin/bookings/${bookingId}/materials`, {
+          name: customDiscountName || "Ad-Hoc Discount",
+          cost: -draftDiscount
+        });
+      }
+
+      // 3. Submit Final Quote
+      const finalTotalInPaise = Math.round(Number(draftQuoteAmount) * 100);
+      const response = await axiosInstance.post(`/admin/bookings/${bookingId}/submit-quote`, {
+        totalAmount: finalTotalInPaise,
+        notes: adminQuoteNotes
+      });
+
+      if (response.data.success) {
+        alert("Quote and materials saved successfully!");
+        setInitialDraftState({ materials: draftMaterials, quote: draftQuoteAmount });
+        setDraftDiscount(0);
+        dispatch(fetchBookings());
+        // Reload local booking data
+        const updated = await axiosInstance.get(`/bookings/${bookingId}`);
+        setSelectedBooking(updated.data.booking || updated.data.data);
+      }
+    } catch (err) {
+      console.error("Master update failed:", err);
+      alert("CRITICAL ERROR: Failed to save changes. The update process was halted to prevent data inconsistency. Please check your connection and try again.");
+    } finally {
+      setIsSubmittingQuote(false);
+    }
+  };
+
   const handleForceApprove = async () => {
     if (!selectedBooking) return;
+    const confirmApprove = window.confirm("Are you sure you want to manually approve this quote? This will bypass customer confirmation.");
+    if (!confirmApprove) return;
+
     try {
       const response = await axiosInstance.post(`/bookings/${selectedBooking._id || selectedBooking.id}/approve-quote`);
       if (response.data.success) {
         alert("Booking Force Approved!");
-        dispatch(fetchBookings());
-        // Reload selection
         const updated = await axiosInstance.get(`/bookings/${selectedBooking._id || selectedBooking.id}`);
-        setSelectedBooking(updated.data.booking);
+        setSelectedBooking(updated.data.booking || updated.data.data);
+        dispatch(fetchBookings());
+        // Reset pro assignment states
+        setProName("");
+        setProPhone("");
       }
     } catch (err) {
       alert(`Force Approval failed: ${err.response?.data?.message || err.message}`);
@@ -173,14 +278,7 @@ const BookingsManagement = () => {
     if (!window.confirm("Are you sure you want to CANCEL this booking? This action is permanent.")) return;
     
     try {
-      setStatus("cancelled");
-      // Use existing handleUpdateStatus logic by setting state first
-      setTimeout(() => {
-        // Find handleUpdateStatus in scope normally it would be called directly
-        // but since we are refactoring, I'll just make sure it triggers
-      }, 0);
-      
-      const response = await dispatch(updateBookingStatus({
+      await dispatch(updateBookingStatus({
         id: selectedBooking._id || selectedBooking.id,
         status: "cancelled"
       })).unwrap();
@@ -189,72 +287,6 @@ const BookingsManagement = () => {
       dispatch(fetchBookings());
     } catch (err) {
       alert("Cancellation failed.");
-    }
-  };
-
-  const handleAddMaterial = async () => {
-    if (selectedBooking && materialName && materialCost) {
-      console.log("Adding Material for:", selectedBooking._id || selectedBooking.id, materialName, materialCost);
-      try {
-        const updatedBooking = await dispatch(addBookingMaterial({
-          id: selectedBooking._id || selectedBooking.id,
-          name: materialName,
-          cost: Math.round(Number(materialCost) * 100) // Scale to subunits
-        })).unwrap();
-        // Update local selectedBooking state without closing the dialog
-        setSelectedBooking(updatedBooking);
-        setMaterialName("");
-        setMaterialCost("");
-        dispatch(fetchBookings());
-      } catch (err) {
-        console.error("Failed to add material:", err);
-        const errorMessage = typeof err === 'object' ? (err.message || JSON.stringify(err)) : String(err);
-        alert(`Failed to add material: ${errorMessage}`);
-      }
-    }
-  };
-
-  const handleApplyCustomDiscount = async () => {
-    if (selectedBooking && customDiscountName && customDiscountAmount) {
-      console.log("Applying Custom Discount for:", selectedBooking._id || selectedBooking.id, customDiscountName, customDiscountAmount);
-      try {
-        await dispatch(addBookingMaterial({
-          id: selectedBooking._id || selectedBooking.id,
-          name: `Discount: ${customDiscountName}`,
-          cost: -Math.round(Number(customDiscountAmount) * 100) // Scale to subunits (Negative for discount)
-        })).unwrap();
-
-        setCustomDiscountName("");
-        setCustomDiscountAmount("");
-        dispatch(fetchBookings());
-        const updated = bookings.find(b => (b._id || b.id) === (selectedBooking._id || selectedBooking.id));
-        if (updated) setSelectedBooking(updated);
-      } catch (err) {
-        console.error("Failed to apply discount:", err);
-        alert(`Failed to apply discount: ${err.message || 'Unknown error'}`);
-      }
-    }
-  };
-
-  const handleSubmitQuote = async () => {
-    if (!selectedBooking || !quotedTotal) return;
-    setIsSubmittingQuote(true);
-    try {
-      const response = await axiosInstance.post(`/admin/bookings/${selectedBooking._id || selectedBooking.id}/submit-quote`, {
-        totalAmount: Math.round(Number(quotedTotal) * 100),
-        notes: adminQuoteNotes
-      });
-      if (response.data.success) {
-        alert("Quote submitted to user!");
-        setQuotedTotal("");
-        setAdminQuoteNotes("");
-        dispatch(fetchBookings());
-        handleCloseDialog();
-      }
-    } catch (err) {
-      alert(`Quote failed: ${err.response?.data?.message || err.message}`);
-    } finally {
-      setIsSubmittingQuote(false);
     }
   };
 
@@ -516,11 +548,18 @@ const BookingsManagement = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {selectedBooking.materials && selectedBooking.materials.length > 0 ? (
-                          selectedBooking.materials.map((mat, idx) => (
+                        {draftMaterials && draftMaterials.length > 0 ? (
+                          draftMaterials.map((mat, idx) => (
                             <TableRow key={idx}>
                               <TableCell>{mat.name}</TableCell>
-                              <TableCell align="right">₹{formatCurrency(mat.cost)}</TableCell>
+                              <TableCell align="right">
+                                ₹{formatCurrency(mat.cost)}
+                                {(!selectedBooking.materials || !selectedBooking.materials.some(em => em.name === mat.name && em.cost === mat.cost)) && (
+                                  <IconButton size="small" color="error" onClick={() => handleRemoveMaterial(idx)} sx={{ ml: 1 }}>
+                                    <DeleteIcon fontSize="inherit" />
+                                  </IconButton>
+                                )}
+                              </TableCell>
                             </TableRow>
                           ))
                         ) : (
@@ -528,10 +567,13 @@ const BookingsManagement = () => {
                             <TableCell colSpan={2} align="center">No additional materials added.</TableCell>
                           </TableRow>
                         )}
-                        {selectedBooking.materials && selectedBooking.materials.length > 0 && (
-                          <TableRow>
-                            <TableCell align="right"><strong>Final Total</strong></TableCell>
-                            <TableCell align="right"><strong>₹{formatCurrency(selectedBooking.finalTotal)}</strong></TableCell>
+                        {/* Draft Preview Row */}
+                        {(draftMaterials.length > 0 || draftDiscount > 0) && (
+                          <TableRow sx={{ bgcolor: '#fff7ed' }}>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Staged Change Sum</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                              ₹{formatCurrency(draftMaterials.reduce((s, m) => s + m.cost, 0) - draftDiscount)}
+                            </TableCell>
                           </TableRow>
                         )}
                       </TableBody>
@@ -701,13 +743,36 @@ const BookingsManagement = () => {
                   {/* Phase 1: Quoting (New Request) */}
                   {selectedBooking.billingStatus === 'pending_visit' && (
                     <Box>
-                      <Typography variant="subtitle2" color="primary" gutterBottom>Phase 1: Assessing & Quoting</Typography>
-                      <Typography variant="body2" sx={{ mb: 2 }}>This booking requires a professional quote before work can begin.</Typography>
+                      <Typography variant="subtitle2" color="primary" gutterBottom>Phase 1: Assessing & Quoting (DRAFT MODE)</Typography>
+                      <Typography variant="body2" sx={{ mb: 2 }}>
+                        Staging Area: Add materials and calculate the final quote. Changes are only push to the customer once "Save & Send" is clicked.
+                      </Typography>
+                      
+                      <Grid container spacing={2} sx={{ mb: 2 }}>
+                        <Grid item xs={12} md={6}>
+                          <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f0fdf4' }}>
+                            <Typography variant="caption" color="textSecondary">Current Draft Total</Typography>
+                            <Typography variant="h5" color="success.main">
+                              ₹{formatCurrency(Math.round(Number(draftQuoteAmount || 0) * 100))}
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <Paper variant="outlined" sx={{ p: 2, bgcolor: '#eff6ff' }}>
+                            <Typography variant="caption" color="textSecondary">Base Cost Reference</Typography>
+                            <Typography variant="h5">
+                              ₹{formatCurrency(selectedBooking.baseCost || selectedBooking.totalAmount)}
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                      </Grid>
+
                       <Grid container spacing={2}>
                         <Grid item xs={12} md={4}>
                           <TextField
-                            fullWidth label="Grand Total Quote (₹)" size="small" type="number"
-                            value={quotedTotal} onChange={(e) => setQuotedTotal(e.target.value)}
+                            fullWidth label="Adjusted Final Quote (₹)" size="small" type="number"
+                            value={draftQuoteAmount} onChange={(e) => setDraftQuoteAmount(e.target.value)}
+                            helperText="This is what the customer will see."
                           />
                         </Grid>
                         <Grid item xs={12} md={8}>
@@ -718,10 +783,11 @@ const BookingsManagement = () => {
                         </Grid>
                       </Grid>
                       <Button
-                        variant="contained" fullWidth sx={{ mt: 2 }}
-                        onClick={handleSubmitQuote} disabled={!quotedTotal || isSubmittingQuote}
+                        variant="contained" fullWidth sx={{ mt: 2, py: 1.5, fontWeight: 'bold' }}
+                        color="success"
+                        onClick={handleSubmitMasterUpdate} disabled={!draftQuoteAmount || isSubmittingQuote}
                       >
-                        {isSubmittingQuote ? "Sending..." : "Send Final Quote to Customer"}
+                        {isSubmittingQuote ? "Saving & Notifying..." : "Save Draft & Send Update to Customer"}
                       </Button>
                     </Box>
                   )}
@@ -752,7 +818,7 @@ const BookingsManagement = () => {
                       </Typography>
 
                       {/* Sub-step: Assignment */}
-                      {!selectedBooking.assignedPro ? (
+                      {!selectedBooking.assignedPro?._id ? (
                         <Box sx={{ p: 2, bgcolor: "#f0f7ff", borderRadius: 1, border: "1px dashed #2196f3", mb: 2 }}>
                           <Typography variant="caption" display="block" sx={{ mb: 1, fontWeight: 'bold' }}>
                             Step 1: Confirm & Assign Professional
