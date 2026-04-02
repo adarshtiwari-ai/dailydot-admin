@@ -629,6 +629,110 @@ const BookingsManagement = () => {
           </DialogTitle>
           <DialogContent dividers>
             <Grid container spacing={3}>
+              {/* Phase 3: Selection & Execution (Now prioritized at top for Pending/Confirmed) */}
+              {(selectedBooking.status?.toLowerCase() === 'pending' || 
+                selectedBooking.billingStatus === 'pending_visit' || 
+                selectedBooking.status?.toLowerCase() === 'confirmed' || 
+                selectedBooking.billingStatus === 'approved') && 
+                selectedBooking.status?.toLowerCase() !== 'completed' && 
+                selectedBooking.status?.toLowerCase() !== 'cancelled' && (
+                <Grid item xs={12}>
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f0f7ff', borderLeft: '5px solid #0288d1', mb: 2 }}>
+                    <Typography variant="h6" gutterBottom color="primary">Worker Assignment & Execution</Typography>
+                    
+                    {/* Sub-step: Assignment */}
+                    {!selectedBooking.assignedPro?._id ? (
+                      <Box sx={{ p: 2, bgcolor: "#ffffff", borderRadius: 1, border: "1px dashed #2196f3", mb: 2 }}>
+                        <Typography variant="caption" display="block" sx={{ mb: 1, fontWeight: 'bold' }}>
+                          Step 1: Confirm & Assign Professional
+                        </Typography>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} md={6}>
+                            <Autocomplete
+                              fullWidth freeSolo size="small" options={availablePros}
+                              getOptionLabel={(option) => typeof option === 'string' ? option : option.name}
+                              onInputChange={(e, val) => setProName(val)}
+                              onChange={(e, val) => {
+                                if (val && typeof val === 'object') {
+                                  setProName(val.name);
+                                  setProPhone(val.phone || "");
+                                }
+                              }}
+                              renderInput={(params) => (
+                                <TextField 
+                                  {...params} 
+                                  label="Professional Name" 
+                                  InputProps={{
+                                    ...params.InputProps,
+                                    startAdornment: (
+                                      <InputAdornment position="start">
+                                        <PersonIcon color="action" fontSize="small" />
+                                      </InputAdornment>
+                                    )
+                                  }}
+                                />
+                              )}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth label="Phone" size="small" value={proPhone}
+                              onChange={(e) => setProPhone(e.target.value)}
+                              placeholder="e.g., 98765 43210"
+                              helperText="Enter 10-digit phone number"
+                              InputProps={{
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <PhoneIcon color="action" fontSize="small" />
+                                  </InputAdornment>
+                                )
+                              }}
+                            />
+                          </Grid>
+                        </Grid>
+                        <Button 
+                          variant="contained" fullWidth 
+                          sx={{ mt: 4, py: 1.5, fontWeight: 'bold', boxShadow: 3 }}
+                          onClick={() => { setStatus("confirmed"); setTimeout(() => handleUpdateStatus(), 0); }}
+                          disabled={!proName || !proPhone}
+                        >
+                          Confirm & Assign Pro
+                        </Button>
+                      </Box>
+                    ) : (
+                      <Box>
+                         <Typography variant="caption" display="block" sx={{ mb: 2, color: 'text.secondary' }}>
+                          Professional {selectedBooking.assignedPro.name} is assigned. Move to next logic step:
+                        </Typography>
+                        <Grid container spacing={2}>
+                          {selectedBooking.status?.toLowerCase() === 'confirmed' || selectedBooking.status?.toLowerCase() === 'assigned' || selectedBooking.status?.toLowerCase() === 'pending' ? (
+                            <Grid item xs={12}>
+                              <Button 
+                                variant="contained" fullWidth color="info"
+                                onClick={() => { setStatus("on_the_way"); setTimeout(() => handleUpdateStatus(), 0); }}
+                              >
+                                Mark as 'On The Way'
+                              </Button>
+                            </Grid>
+                          ) : null}
+
+                          {selectedBooking.status?.toLowerCase() === 'on_the_way' ? (
+                            <Grid item xs={12}>
+                              <Button 
+                                variant="contained" fullWidth color="warning"
+                                onClick={() => { setStatus("in_progress"); setTimeout(() => handleUpdateStatus(), 0); }}
+                              >
+                                Mark as 'In Progress' (Start Work)
+                              </Button>
+                            </Grid>
+                          ) : null}
+                        </Grid>
+                      </Box>
+                    )}
+                  </Paper>
+                </Grid>
+              )}
+
               {/* Service Details */}
               <Grid item xs={12}>
                 <Typography variant="h6" gutterBottom>Service Items</Typography>
@@ -995,104 +1099,6 @@ const BookingsManagement = () => {
                     </Box>
                   )}
 
-                  {/* Phase 3: Selection & Execution (Confirmed/Approved) */}
-                  {(selectedBooking.billingStatus === 'approved' || selectedBooking.status?.toLowerCase() === 'confirmed') && selectedBooking.status?.toLowerCase() !== 'completed' && selectedBooking.status?.toLowerCase() !== 'cancelled' && (
-                    <Box>
-                      <Typography variant="subtitle2" color="success.main" gutterBottom>
-                        Phase 3: Service Execution
-                      </Typography>
-
-                      {/* Sub-step: Assignment */}
-                      {!selectedBooking.assignedPro?._id ? (
-                        <Box sx={{ p: 2, bgcolor: "#f0f7ff", borderRadius: 1, border: "1px dashed #2196f3", mb: 2 }}>
-                          <Typography variant="caption" display="block" sx={{ mb: 1, fontWeight: 'bold' }}>
-                            Step 1: Confirm & Assign Professional
-                          </Typography>
-                          <Grid container spacing={2}>
-                            <Grid item xs={12} md={6}>
-                              <Autocomplete
-                                fullWidth freeSolo size="small" options={availablePros}
-                                getOptionLabel={(option) => typeof option === 'string' ? option : option.name}
-                                onInputChange={(e, val) => setProName(val)}
-                                onChange={(e, val) => {
-                                  if (val && typeof val === 'object') {
-                                    setProName(val.name);
-                                    setProPhone(val.phone || "");
-                                  }
-                                }}
-                                renderInput={(params) => (
-                                  <TextField 
-                                    {...params} 
-                                    label="Professional Name" 
-                                    InputProps={{
-                                      ...params.InputProps,
-                                      startAdornment: (
-                                        <InputAdornment position="start">
-                                          <PersonIcon color="action" fontSize="small" />
-                                        </InputAdornment>
-                                      )
-                                    }}
-                                  />
-                                )}
-                              />
-                            </Grid>
-                            <Grid item xs={12} md={6}>
-                              <TextField
-                                fullWidth label="Phone" size="small" value={proPhone}
-                                onChange={(e) => setProPhone(e.target.value)}
-                                placeholder="e.g., 98765 43210"
-                                helperText="Enter 10-digit phone number"
-                                InputProps={{
-                                  startAdornment: (
-                                    <InputAdornment position="start">
-                                      <PhoneIcon color="action" fontSize="small" />
-                                    </InputAdornment>
-                                  )
-                                }}
-                              />
-                            </Grid>
-                          </Grid>
-                          <Button 
-                            variant="contained" fullWidth 
-                            sx={{ mt: 4, py: 1.5, fontWeight: 'bold', boxShadow: 3 }}
-                            onClick={() => { setStatus("confirmed"); setTimeout(() => handleUpdateStatus(), 0); }}
-                            disabled={!proName || !proPhone}
-                          >
-                            Confirm & Assign Pro
-                          </Button>
-                        </Box>
-                      ) : (
-                        <Box>
-                           <Typography variant="caption" display="block" sx={{ mb: 2, color: 'text.secondary' }}>
-                            Professional {selectedBooking.assignedPro.name} is assigned. Move to next logic step:
-                          </Typography>
-                          <Grid container spacing={2}>
-                            {selectedBooking.status?.toLowerCase() === 'confirmed' || selectedBooking.status?.toLowerCase() === 'assigned' ? (
-                              <Grid item xs={12}>
-                                <Button 
-                                  variant="contained" fullWidth color="info"
-                                  onClick={() => { setStatus("on_the_way"); setTimeout(() => handleUpdateStatus(), 0); }}
-                                >
-                                  Mark as 'On The Way'
-                                </Button>
-                              </Grid>
-                            ) : null}
-
-                            {selectedBooking.status?.toLowerCase() === 'on_the_way' ? (
-                              <Grid item xs={12}>
-                                <Button 
-                                  variant="contained" fullWidth color="warning"
-                                  onClick={() => { setStatus("in_progress"); setTimeout(() => handleUpdateStatus(), 0); }}
-                                >
-                                  Mark as 'In Progress' (Start Work)
-                                </Button>
-                              </Grid>
-                            ) : null}
-                          </Grid>
-                        </Box>
-                      )}
-                    </Box>
-                  )}
 
                   {/* Phase 4: Finalization (Completion) */}
                   {selectedBooking.status?.toLowerCase() === 'in_progress' && (
