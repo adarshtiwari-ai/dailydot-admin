@@ -119,23 +119,76 @@ const BookingsManagement = () => {
   const handleUpdateStatus = async () => {
     if (selectedBooking && status) {
       console.log("Updating Status for:", selectedBooking._id || selectedBooking.id, "to", status);
+      const isConfirmed = status.toLowerCase() === "confirmed";
+      const isCompleted = status.toLowerCase() === "completed";
+
+      // Validation for Confirm & Assign step
+      if (isConfirmed && (!proName || !proPhone)) {
+        alert("Please select or enter professional details to confirm.");
+        return;
+      }
+
       try {
-        await dispatch(updateBookingStatus({
+        const response = await dispatch(updateBookingStatus({
           id: selectedBooking._id || selectedBooking.id,
           status: status.toLowerCase(),
-          proName: status === "confirmed" ? proName : undefined,
-          proPhone: status === "confirmed" ? proPhone : undefined,
-          materialCost: status === "completed" ? Math.round(Number(settlementMaterialCost) * 100) : undefined,
-          adminCommission: status === "completed" ? Math.round(Number(settlementAdminCommission) * 100) : undefined,
-          taxAmount: status === "completed" ? Math.round(Number(selectedBooking.baseCost || selectedBooking.totalAmount) * (Number(customTaxRate) / 100)) : undefined
+          proName: isConfirmed ? proName : undefined,
+          proPhone: isConfirmed ? proPhone : undefined,
+          materialCost: isCompleted ? Math.round(Number(settlementMaterialCost) * 100) : undefined,
+          adminCommission: isCompleted ? Math.round(Number(settlementAdminCommission) * 100) : undefined,
+          taxAmount: isCompleted ? Math.round(Number(selectedBooking.baseCost || selectedBooking.totalAmount) * (Number(customTaxRate) / 100)) : undefined
         })).unwrap();
-        handleCloseDialog();
+        
+        // Update local state if successful to reflect changes in modal
+        setSelectedBooking(response.booking || response);
+        // We don't always want to close the dialog, but let's refresh list
+        dispatch(fetchBookings());
+        if (isCompleted || status === 'cancelled') handleCloseDialog();
       } catch (err) {
         console.error("Failed to update status:", err);
-        // Extract useful error message
         const errorMessage = typeof err === 'object' ? (err.message || JSON.stringify(err)) : String(err);
         alert(`Failed to update status: ${errorMessage}`);
       }
+    }
+  };
+
+  const handleForceApprove = async () => {
+    if (!selectedBooking) return;
+    try {
+      const response = await axiosInstance.post(`/bookings/${selectedBooking._id || selectedBooking.id}/approve-quote`);
+      if (response.data.success) {
+        alert("Booking Force Approved!");
+        dispatch(fetchBookings());
+        // Reload selection
+        const updated = await axiosInstance.get(`/bookings/${selectedBooking._id || selectedBooking.id}`);
+        setSelectedBooking(updated.data.booking);
+      }
+    } catch (err) {
+      alert(`Force Approval failed: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const handleCancelBooking = async () => {
+    if (!selectedBooking) return;
+    if (!window.confirm("Are you sure you want to CANCEL this booking? This action is permanent.")) return;
+    
+    try {
+      setStatus("cancelled");
+      // Use existing handleUpdateStatus logic by setting state first
+      setTimeout(() => {
+        // Find handleUpdateStatus in scope normally it would be called directly
+        // but since we are refactoring, I'll just make sure it triggers
+      }, 0);
+      
+      const response = await dispatch(updateBookingStatus({
+        id: selectedBooking._id || selectedBooking.id,
+        status: "cancelled"
+      })).unwrap();
+      
+      handleCloseDialog();
+      dispatch(fetchBookings());
+    } catch (err) {
+      alert("Cancellation failed.");
     }
   };
 
@@ -382,10 +435,11 @@ const BookingsManagement = () => {
                       <TableCell>
                         <Button
                           size="small"
-                          variant="outlined"
+                          variant="contained"
+                          color="primary"
                           onClick={() => handleOpenDialog(booking)}
                         >
-                          View & Edit
+                          Manage
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -639,33 +693,26 @@ const BookingsManagement = () => {
                 </Paper>
               </Grid>
 
-              {/* SERVICE REQUEST TOOLING (Quoting & Payments) */}
+              {/* Unified Workflow Section */}
               <Grid item xs={12}>
-                <Typography variant="h6" gutterBottom color="primary">Service Agreement Tools</Typography>
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f0f9ff' }}>
-                  <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography>Current Billing Status: <strong>{selectedBooking.billingStatus?.toUpperCase() || 'LEGACY_FIXED_PRICE'}</strong></Typography>
-                    <Chip
-                      label={selectedBooking.billingStatus || 'N/A'}
-                      color={getStatusColor(selectedBooking.billingStatus)}
-                      size="small"
-                    />
-                  </Box>
-
-                  {/* STEP 1: SUBMIT QUOTE (For pending_visit) */}
+                <Typography variant="h6" gutterBottom color="primary">Manage Booking Workflow</Typography>
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f8fafc', borderLeft: '5px solid #1976d2' }}>
+                  
+                  {/* Phase 1: Quoting (New Request) */}
                   {selectedBooking.billingStatus === 'pending_visit' && (
-                    <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid #bae6fd' }}>
-                      <Typography variant="subtitle2" gutterBottom>Generate Final Quote</Typography>
+                    <Box>
+                      <Typography variant="subtitle2" color="primary" gutterBottom>Phase 1: Assessing & Quoting</Typography>
+                      <Typography variant="body2" sx={{ mb: 2 }}>This booking requires a professional quote before work can begin.</Typography>
                       <Grid container spacing={2}>
                         <Grid item xs={12} md={4}>
                           <TextField
-                            fullWidth label="Final Quote Amount (₹)" size="small" type="number"
+                            fullWidth label="Grand Total Quote (₹)" size="small" type="number"
                             value={quotedTotal} onChange={(e) => setQuotedTotal(e.target.value)}
                           />
                         </Grid>
                         <Grid item xs={12} md={8}>
                           <TextField
-                            fullWidth label="Admin Notes (Sent to User)" size="small"
+                            fullWidth label="Optional Notes for Customer" size="small"
                             value={adminQuoteNotes} onChange={(e) => setAdminQuoteNotes(e.target.value)}
                           />
                         </Grid>
@@ -674,130 +721,169 @@ const BookingsManagement = () => {
                         variant="contained" fullWidth sx={{ mt: 2 }}
                         onClick={handleSubmitQuote} disabled={!quotedTotal || isSubmittingQuote}
                       >
-                        {isSubmittingQuote ? "Sending..." : "Push Quote to User"}
+                        {isSubmittingQuote ? "Sending..." : "Send Final Quote to Customer"}
                       </Button>
                     </Box>
                   )}
 
-                  {/* STEP 2: RECORD PAYMENT (For approved) */}
-                  {selectedBooking.billingStatus === 'approved' && (
-                    <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid #bbf7d0' }}>
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="subtitle2">Record/Request Installment</Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          Approved Quote: ₹{formatCurrency(selectedBooking.quote?.total || 0)} |
-                          Paid: ₹{formatCurrency(selectedBooking.installments?.reduce((s, i) => s + i.amount, 0) || 0)}
-                        </Typography>
-                      </Box>
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} md={5}>
-                          <TextField
-                            fullWidth label="Payment Amount (₹)" size="small" type="number"
-                            value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)}
-                          />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                          <FormControl fullWidth size="small">
-                            <InputLabel>Method</InputLabel>
-                            <Select value={paymentMethod} label="Method" onChange={(e) => setPaymentMethod(e.target.value)}>
-                              <MenuItem value="cash">Cash / Offline</MenuItem>
-                              <MenuItem value="online_request">Online Request (Mobile)</MenuItem>
-                            </Select>
-                          </FormControl>
-                        </Grid>
-                        <Grid item xs={12} md={3}>
-                          <Button
-                            variant="contained" color="success" fullWidth
-                            onClick={handleRecordPayment} disabled={!paymentAmount || isRecordingPayment}
-                          >
-                            Add
-                          </Button>
-                        </Grid>
-                      </Grid>
+                  {/* Phase 2: Customer Approval (Waiting for response) */}
+                  {selectedBooking.billingStatus === 'quote_sent' && (
+                    <Box sx={{ textAlign: 'center', py: 2 }}>
+                      <Typography variant="subtitle2" color="warning.main">Phase 2: Awaiting Customer Approval</Typography>
+                      <Typography variant="body2" sx={{ mt: 1, mb: 3 }}>
+                        The quote has been sent. The customer must approve it on their mobile app.
+                      </Typography>
+                      <Button 
+                        variant="outlined" 
+                        color="warning" 
+                        onClick={handleForceApprove}
+                        startIcon={<Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'warning.main' }} />}
+                      >
+                        Admin Override: Force Approve Quote
+                      </Button>
                     </Box>
                   )}
 
-                  {/* Ledger Display */}
-                  {selectedBooking.installments && selectedBooking.installments.length > 0 && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 'bold' }}>Payment Ledger:</Typography>
-                      {selectedBooking.installments.map((inst, idx) => (
-                        <Box key={idx} sx={{ display: 'flex', justifyContent: 'space-between', px: 1, py: 0.5, borderBottom: '1px solid #e2e8f0' }}>
-                          <Typography variant="caption">{new Date(inst.paidAt).toLocaleDateString()} - {inst.method}</Typography>
-                          <Typography variant="caption" sx={{ fontWeight: 'bold' }}>₹{formatCurrency(inst.amount)}</Typography>
+                  {/* Phase 3: Selection & Execution (Confirmed/Approved) */}
+                  {(selectedBooking.billingStatus === 'approved' || selectedBooking.status?.toLowerCase() === 'confirmed') && selectedBooking.status?.toLowerCase() !== 'completed' && selectedBooking.status?.toLowerCase() !== 'cancelled' && (
+                    <Box>
+                      <Typography variant="subtitle2" color="success.main" gutterBottom>
+                        Phase 3: Service Execution
+                      </Typography>
+
+                      {/* Sub-step: Assignment */}
+                      {!selectedBooking.assignedPro ? (
+                        <Box sx={{ p: 2, bgcolor: "#f0f7ff", borderRadius: 1, border: "1px dashed #2196f3", mb: 2 }}>
+                          <Typography variant="caption" display="block" sx={{ mb: 1, fontWeight: 'bold' }}>
+                            Step 1: Confirm & Assign Professional
+                          </Typography>
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} md={6}>
+                              <Autocomplete
+                                fullWidth freeSolo size="small" options={availablePros}
+                                getOptionLabel={(option) => typeof option === 'string' ? option : option.name}
+                                onInputChange={(e, val) => setProName(val)}
+                                onChange={(e, val) => {
+                                  if (val && typeof val === 'object') {
+                                    setProName(val.name);
+                                    setProPhone(val.phone || "");
+                                  }
+                                }}
+                                renderInput={(params) => <TextField {...params} label="Professional Name" />}
+                              />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                              <TextField
+                                fullWidth label="Phone" size="small" value={proPhone}
+                                onChange={(e) => setProPhone(e.target.value)}
+                              />
+                            </Grid>
+                          </Grid>
+                          <Button 
+                            variant="contained" fullWidth sx={{ mt: 2 }}
+                            onClick={() => { setStatus("confirmed"); setTimeout(() => handleUpdateStatus(), 0); }}
+                            disabled={!proName || !proPhone}
+                          >
+                            Confirm & Assign Pro
+                          </Button>
                         </Box>
-                      ))}
+                      ) : (
+                        <Box>
+                           <Typography variant="caption" display="block" sx={{ mb: 2, color: 'text.secondary' }}>
+                            Professional {selectedBooking.assignedPro.name} is assigned. Move to next logic step:
+                          </Typography>
+                          <Grid container spacing={2}>
+                            {selectedBooking.status?.toLowerCase() === 'confirmed' || selectedBooking.status?.toLowerCase() === 'assigned' ? (
+                              <Grid item xs={12}>
+                                <Button 
+                                  variant="contained" fullWidth color="info"
+                                  onClick={() => { setStatus("on_the_way"); setTimeout(() => handleUpdateStatus(), 0); }}
+                                >
+                                  Mark as 'On The Way'
+                                </Button>
+                              </Grid>
+                            ) : null}
+
+                            {selectedBooking.status?.toLowerCase() === 'on_the_way' ? (
+                              <Grid item xs={12}>
+                                <Button 
+                                  variant="contained" fullWidth color="warning"
+                                  onClick={() => { setStatus("in_progress"); setTimeout(() => handleUpdateStatus(), 0); }}
+                                >
+                                  Mark as 'In Progress' (Start Work)
+                                </Button>
+                              </Grid>
+                            ) : null}
+                          </Grid>
+                        </Box>
+                      )}
                     </Box>
                   )}
+
+                  {/* Phase 4: Finalization (Completion) */}
+                  {selectedBooking.status?.toLowerCase() === 'in_progress' && (
+                    <Box>
+                      <Typography variant="subtitle2" color="success.main" gutterBottom>Phase 4: Completion & Settlement</Typography>
+                      <Paper variant="outlined" sx={{ p: 2, bgcolor: 'white', mb: 2 }}>
+                        <Typography variant="caption" sx={{ mb: 2, display: 'block' }}>Enter final cost details to settle with provider.</Typography>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} md={4}>
+                            <TextField
+                              fullWidth label="Final Material Cost (₹)" size="small" type="number"
+                              value={settlementMaterialCost} onChange={(e) => setSettlementMaterialCost(e.target.value)}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={4}>
+                            <TextField
+                              fullWidth label="Admin Commission (₹)" size="small" type="number"
+                              value={settlementAdminCommission} onChange={(e) => setSettlementAdminCommission(e.target.value)}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={4}>
+                            <TextField
+                              fullWidth label="GST Rate (%)" size="small" type="number"
+                              value={customTaxRate} onChange={(e) => setCustomTaxRate(e.target.value)}
+                            />
+                          </Grid>
+                        </Grid>
+                        <Button 
+                          variant="contained" color="success" fullWidth sx={{ mt: 2 }}
+                          onClick={() => { setStatus("completed"); setTimeout(() => handleUpdateStatus(), 0); }}
+                        >
+                          Complete Job & Generate Invoice
+                        </Button>
+                      </Paper>
+                    </Box>
+                  )}
+
+                  {/* Terminal State Display */}
+                  {(selectedBooking.status?.toLowerCase() === 'completed' || selectedBooking.status?.toLowerCase() === 'cancelled') && (
+                    <Box sx={{ textAlign: 'center', py: 2 }}>
+                      <Alert severity={selectedBooking.status?.toLowerCase() === 'completed' ? "success" : "error"}>
+                        This booking is <strong>{selectedBooking.status?.toUpperCase()}</strong>. No further status changes allowed.
+                      </Alert>
+                    </Box>
+                  )}
+
                 </Paper>
               </Grid>
 
-              {/* Status Update */}
+              {/* Status Update (Legacy - Removed as per requirements but keeping handle fallback) */}
+              
               <Grid item xs={12}>
-                <Typography variant="h6" gutterBottom>Update Status</Typography>
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={status}
-                    label="Status"
-                    onChange={(e) => setStatus(e.target.value)}
+                <Box sx={{ mt: 4, pt: 2, borderTop: '1px solid #fee2e2', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="caption" color="textSecondary">Dangerous Actions:</Typography>
+                  <Button 
+                    variant="text" 
+                    color="error" 
+                    size="small" 
+                    onClick={handleCancelBooking}
+                    disabled={selectedBooking.status?.toLowerCase() === 'completed' || selectedBooking.status?.toLowerCase() === 'cancelled'}
                   >
-                    <MenuItem value="pending">Pending</MenuItem>
-                    <MenuItem value="confirmed">Confirmed</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem>
-                    <MenuItem value="cancelled">Cancelled</MenuItem>
-                  </Select>
-                </FormControl>
-
-                {/* Professional Assignment Inputs - Only show when confirming */}
-                {status === "confirmed" && (
-                  <Box sx={{ mt: 2, p: 2, bgcolor: "#f0f7ff", borderRadius: 1, border: "1px dashed #2196f3" }}>
-                    <Typography variant="subtitle2" color="primary" gutterBottom>
-                      Assign Professional (Optional)
-                    </Typography>
-                    <Typography variant="caption" display="block" sx={{ mb: 2, color: "text.secondary" }}>
-                      Enter details to auto-assign/create a professional account.
-                    </Typography>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
-                        <Autocomplete
-                          fullWidth
-                          freeSolo
-                          options={availablePros}
-                          getOptionLabel={(option) => typeof option === 'string' ? option : option.name}
-                          value={proName}
-                          onInputChange={(event, newInputValue) => {
-                            setProName(newInputValue);
-                          }}
-                          onChange={(event, newValue) => {
-                            if (newValue && typeof newValue === 'object') {
-                              setProName(newValue.name);
-                              setProPhone(newValue.phone || "");
-                            }
-                          }}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label="Professional Name"
-                              size="small"
-                              placeholder="Select or type new name"
-                            />
-                          )}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="Professional Phone"
-                          size="small"
-                          value={proPhone}
-                          onChange={(e) => setProPhone(e.target.value)}
-                          placeholder="e.g. 9876543210"
-                        />
-                      </Grid>
-                    </Grid>
-                  </Box>
-                )}
+                    Cancel Entire Booking
+                  </Button>
+                </Box>
+              </Grid>
 
                 {/* Financial Settlement Form - Only show when completing */}
                 {status === "completed" && (
