@@ -79,6 +79,7 @@ const BookingsManagement = () => {
   const [quotedTotal, setQuotedTotal] = useState("");
   const [adminQuoteNotes, setAdminQuoteNotes] = useState("");
   const [isSubmittingQuote, setIsSubmittingQuote] = useState(false);
+  const [bestCostTotal, setBestCostTotal] = useState(0); // Track taxable base
 
   // Payment recording states
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -105,30 +106,25 @@ const BookingsManagement = () => {
     }
   };
 
-  const handleOpenDialog = (booking) => {
-    console.log("Opening Dialog for:", booking._id || booking.id);
-    setSelectedBooking(booking);
-    setStatus(booking.status);
-    setProName("");
-    setProPhone("");
-    setMaterialName("");
-    setMaterialCost("");
-    setCustomDiscountName("");
-    setCustomDiscountAmount("");
-    setSettlementMaterialCost("");
-    setSettlementAdminCommission("");
-    setCustomTaxRate("18");
-    
-    // Initialize Draft State
-    const initialQuote = booking.totalAmount ? (booking.totalAmount / 100).toString() : "";
-    const initialMats = [...(booking.materials || [])];
-    setDraftMaterials(initialMats);
-    setDraftDiscount(0);
-    setDraftBasePrice(initialQuote);
-    setInitialDraftState({ materials: initialMats, quote: initialQuote });
-    
-    setOpenDialog(true);
-  };
+    // --- Open Modal & Initialize Draft Workspace ---
+    const handleOpenDialog = (booking) => {
+        setSelectedBooking(booking);
+        setStatus(booking.status);
+        
+        // Calculate the immutable bestCostTotal for taxing purposes
+        const bct = (booking.items || []).reduce((sum, item) => {
+            const bcp = item.serviceId?.bestCostPrice || item.serviceId?.price || item.price || 0;
+            return sum + (bcp * (item.quantity || 1));
+        }, 0);
+        setBestCostTotal(bct);
+
+        // Initialize UI Drafts
+        const initialQuote = booking.totalAmount ? (booking.totalAmount / 100).toString() : "";
+        setDraftMaterials([...(booking.materials || [])]);
+        setDraftDiscount(0);
+        setDraftBasePrice(initialQuote);
+        setOpenDialog(true);
+    };
 
   // --- Dynamic Pricing Hook (Server-Authoritative) ---
   useEffect(() => {
@@ -137,14 +133,15 @@ const BookingsManagement = () => {
         try {
           const response = await axiosInstance.post("/bookings/calculate", {
             baseCost: Math.round(Number(draftBasePrice) * 100),
+            bestCostTotal: bestCostTotal, // Isolated taxing base
             items: selectedBooking.items || [],
             materials: draftMaterials,
             adjustments: draftDiscount > 0 ? [{ reason: "Adjustment", amount: -draftDiscount }] : []
           });
           if (response.data.success) {
-            const { finalTotal, platformFee, taxAmount, appliedFees } = response.data.receipt;
+            const { finalTotal, platformFee, convenienceFee, taxAmount } = response.data.receipt || response.data;
             setDraftFinalTotal(finalTotal);
-            setDraftBreakdown({ platformFee, taxAmount, appliedFees });
+            setDraftBreakdown({ platformFee, convenienceFee, taxAmount });
           }
         } catch (err) {
           console.error("Pricing calc failed:", err);
@@ -594,18 +591,26 @@ const BookingsManagement = () => {
                             <TableCell colSpan={2} align="center">No additional materials added.</TableCell>
                           </TableRow>
                         )}
-                        {/* Draft Preview Items */}
+                        {/* Dynamic Fees from Settings */}
                         {draftBreakdown.platformFee > 0 && (
                           <TableRow>
-                            <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>Platform Convenience Fee (10%)</TableCell>
+                            <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>Platform Fee (Settings)</TableCell>
                             <TableCell align="right" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
                               ₹{formatCurrency(draftBreakdown.platformFee)}
                             </TableCell>
                           </TableRow>
                         )}
+                        {draftBreakdown.convenienceFee > 0 && (
+                          <TableRow>
+                            <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>Convenience Fee (Settings)</TableCell>
+                            <TableCell align="right" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+                              ₹{formatCurrency(draftBreakdown.convenienceFee)}
+                            </TableCell>
+                          </TableRow>
+                        )}
                         {draftBreakdown.taxAmount > 0 && (
                           <TableRow>
-                            <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>GST (18%)</TableCell>
+                            <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>GST (18% on Service Base)</TableCell>
                             <TableCell align="right" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
                               ₹{formatCurrency(draftBreakdown.taxAmount)}
                             </TableCell>
