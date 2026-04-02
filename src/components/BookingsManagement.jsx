@@ -885,8 +885,9 @@ const BookingsManagement = () => {
                 </Box>
               </Grid>
 
-                {/* Financial Settlement Form - Only show when completing */}
-                {status === "completed" && (
+              {/* Financial Settlement Form - Only show when completing */}
+              {status === "completed" && (
+                <Grid item xs={12}>
                   <Box sx={{ mt: 2, p: 2, bgcolor: "#f0fff4", borderRadius: 1, border: "1px dashed #48bb78" }}>
                     <Typography variant="subtitle2" color="success.main" gutterBottom sx={{ fontWeight: 'bold' }}>
                       🏁 Final Financial Settlement
@@ -957,8 +958,8 @@ const BookingsManagement = () => {
                       <Typography variant="body2" color="success.main"><strong>Net Platform Profit:</strong> ₹{formatCurrency(Number(settlementAdminCommission) || 0)}</Typography>
                     </Box>
                   </Box>
-                )}
-              </Grid>
+                </Grid>
+              )}
 
               {/* Dynamic Billing Ledger Adjustments */}
               {status === "completed" || status === "confirmed" ? (
