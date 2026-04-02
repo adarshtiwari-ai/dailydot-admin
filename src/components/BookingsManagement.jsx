@@ -256,6 +256,14 @@ const BookingsManagement = () => {
       // 3. Submit Final Quote (DICTATED BY SERVER CALCULATION)
       const response = await axiosInstance.post(`/admin/bookings/${bookingId}/submit-quote`, {
         totalAmount: draftFinalTotal,
+        breakdown: {
+          basePrice: Math.round(Number(draftBasePrice) * 100),
+          tax: draftBreakdown.taxAmount,
+          materials: draftMaterials.reduce((sum, mat) => sum + mat.cost, 0),
+          platformFee: draftBreakdown.platformFee,
+          convenienceFee: draftBreakdown.convenienceFee,
+          total: draftFinalTotal
+        },
         notes: adminQuoteNotes
       });
 
@@ -592,23 +600,23 @@ const BookingsManagement = () => {
                           </TableRow>
                         )}
                         {/* Dynamic Fees from Settings */}
-                        {draftBreakdown.platformFee > 0 && (
+                        {draftBreakdown.platformFee !== undefined && (
                           <TableRow>
-                            <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>Platform Fee (Settings)</TableCell>
+                            <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>Platform Fee (from Settings)</TableCell>
                             <TableCell align="right" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
                               ₹{formatCurrency(draftBreakdown.platformFee)}
                             </TableCell>
                           </TableRow>
                         )}
-                        {draftBreakdown.convenienceFee > 0 && (
+                        {draftBreakdown.convenienceFee !== undefined && (
                           <TableRow>
-                            <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>Convenience Fee (Settings)</TableCell>
+                            <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>Convenience Fee (from Settings)</TableCell>
                             <TableCell align="right" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
                               ₹{formatCurrency(draftBreakdown.convenienceFee)}
                             </TableCell>
                           </TableRow>
                         )}
-                        {draftBreakdown.taxAmount > 0 && (
+                        {draftBreakdown.taxAmount !== undefined && (
                           <TableRow>
                             <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>GST (18% on Service Base)</TableCell>
                             <TableCell align="right" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
