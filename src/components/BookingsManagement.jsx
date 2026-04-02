@@ -27,10 +27,101 @@ import {
   FormControl,
   Autocomplete,
   IconButton,
+  Stack,
+  InputAdornment,
+  Divider,
 } from "@mui/material";
 import TextField from "@mui/material/TextField";
 import DeleteIcon from "@mui/icons-material/Delete";
+import InboxIcon from "@mui/icons-material/Inbox";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import PersonIcon from "@mui/icons-material/Person";
+import SendIcon from "@mui/icons-material/Send";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import PhoneIcon from "@mui/icons-material/Phone";
+import BuildIcon from "@mui/icons-material/Build";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
+import MoneyOffIcon from "@mui/icons-material/MoneyOff";
 import BookingAdjustmentModal from "./BookingAdjustmentModal";
+
+const renderStatusBadge = (statusValue) => {
+  const s = String(statusValue || "").toLowerCase();
+  let bg = "rgba(158, 158, 158, 0.12)";
+  let fg = "#757575";
+  let Icon = null;
+
+  switch (s) {
+    case "pending":
+    case "pending_visit":
+      bg = "rgba(237, 108, 2, 0.12)";
+      fg = "#ed6c02";
+      Icon = <AccessTimeIcon sx={{ fontSize: 14, mr: 0.5 }} />;
+      break;
+    case "assigned":
+      bg = "rgba(2, 136, 209, 0.12)";
+      fg = "#0288d1";
+      Icon = <PersonIcon sx={{ fontSize: 14, mr: 0.5 }} />;
+      break;
+    case "quote_sent":
+      bg = "rgba(156, 39, 176, 0.12)";
+      fg = "#9c27b0";
+      Icon = <SendIcon sx={{ fontSize: 14, mr: 0.5 }} />;
+      break;
+    case "confirmed":
+    case "approved":
+    case "paid":
+      bg = "rgba(46, 125, 50, 0.12)";
+      fg = "#2e7d32";
+      Icon = <CheckCircleIcon sx={{ fontSize: 14, mr: 0.5 }} />;
+      break;
+    case "partial":
+      bg = "rgba(237, 108, 2, 0.12)";
+      fg = "#ed6c02";
+      Icon = <PaymentsOutlinedIcon sx={{ fontSize: 14, mr: 0.5 }} />;
+      break;
+    case "unpaid":
+      bg = "rgba(211, 47, 47, 0.12)";
+      fg = "#d32f2f";
+      Icon = <MoneyOffIcon sx={{ fontSize: 14, mr: 0.5 }} />;
+      break;
+    case "in_progress":
+      bg = "rgba(2, 136, 209, 0.12)";
+      fg = "#0288d1"; 
+      Icon = <BuildIcon sx={{ fontSize: 14, mr: 0.5 }} />;
+      break;
+    case "completed":
+      bg = "rgba(46, 125, 50, 0.12)";
+      fg = "#2e7d32";
+      Icon = <CheckCircleIcon sx={{ fontSize: 14, mr: 0.5 }} />;
+      break;
+    case "cancelled":
+      bg = "rgba(211, 47, 47, 0.12)";
+      fg = "#d32f2f";
+      break;
+  }
+
+  return (
+    <Box sx={{ 
+      display: 'inline-flex', 
+      alignItems: 'center', 
+      bgcolor: bg, 
+      color: fg, 
+      px: 1.5, 
+      py: 0.5, 
+      borderRadius: 2, 
+      fontWeight: 'bold', 
+      fontSize: '0.75rem', 
+      textTransform: 'uppercase', 
+      letterSpacing: '0.05em' 
+    }}>
+      {Icon}
+      {statusValue}
+    </Box>
+  );
+};
 import { formatCurrency } from "../utils/currency";
 import axiosInstance from "../services/api.service";
 
@@ -195,14 +286,26 @@ const BookingsManagement = () => {
         })).unwrap();
         
         // Update local state if successful to reflect changes in modal
-        setSelectedBooking(response.booking || response);
+        const updatedBooking = response.booking || response;
+        setSelectedBooking(updatedBooking);
+        setStatus(updatedBooking.status);
+
+        if (updatedBooking.status === 'assigned') {
+            alert("Worker Assigned Successfully");
+        }
+
         // We don't always want to close the dialog, but let's refresh list
         dispatch(fetchBookings());
         if (isCompleted || status === 'cancelled') handleCloseDialog();
       } catch (err) {
         console.error("Failed to update status:", err);
         const errorMessage = typeof err === 'object' ? (err.message || JSON.stringify(err)) : String(err);
-        alert(`Failed to update status: ${errorMessage}`);
+        
+        if (errorMessage.includes("Professional not found")) {
+            alert("Error: Professional not found. Check phone number.");
+        } else {
+            alert(`Failed to update status: ${errorMessage}`);
+        }
       }
     }
   };
@@ -241,33 +344,27 @@ const BookingsManagement = () => {
     try {
       const bookingId = selectedBooking._id || selectedBooking.id;
 
-      // 1. Add NEW staged materials (Strict Halt on failure)
-      const existingMaterialKeys = new Set((selectedBooking.materials || []).map(m => `${m.name}-${m.cost}`));
-      const newMaterials = draftMaterials.filter(m => !existingMaterialKeys.has(`${m.name}-${m.cost}`));
-
-      for (const mat of newMaterials) {
-        await axiosInstance.post(`/admin/bookings/${bookingId}/materials`, mat);
-      }
-
-      // 2. Apply Staged Discount if any (as a negative material)
+      // Unify staged materials and ad-hoc discounts into a single array
+      const finalMaterials = [...draftMaterials];
       if (draftDiscount > 0) {
-        await axiosInstance.post(`/admin/bookings/${bookingId}/materials`, {
+        finalMaterials.push({
           name: customDiscountName || "Ad-Hoc Discount",
           cost: -draftDiscount
         });
       }
 
-      // 3. Submit Final Quote (DICTATED BY SERVER CALCULATION)
+      // Submit Final Quote (Atomic payload with integrated materials)
       const response = await axiosInstance.post(`/admin/bookings/${bookingId}/submit-quote`, {
         totalAmount: draftFinalTotal,
         breakdown: {
           basePrice: Math.round(Number(draftBasePrice) * 100),
           tax: draftBreakdown.taxAmount,
-          materials: draftMaterials.reduce((sum, mat) => sum + mat.cost, 0),
+          materials: finalMaterials.reduce((sum, mat) => sum + mat.cost, 0),
           platformFee: draftBreakdown.platformFee,
           convenienceFee: draftBreakdown.convenienceFee,
           total: draftFinalTotal
         },
+        materials: finalMaterials,
         notes: adminQuoteNotes
       });
 
@@ -452,7 +549,13 @@ const BookingsManagement = () => {
                 {bookings.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} align="center">
-                      No bookings found
+                      <Stack spacing={1} alignItems="center" sx={{ py: 8 }}>
+                        <InboxIcon sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.5 }} />
+                        <Typography variant="h6">You're all caught up!</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          There are no active bookings right now.
+                        </Typography>
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -482,20 +585,10 @@ const BookingsManagement = () => {
                           : new Date(booking.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={booking.billingStatus || booking.status}
-                          color={getStatusColor(booking.billingStatus || booking.status)}
-                          size="small"
-                          sx={{ textTransform: 'capitalize' }}
-                        />
+                        {renderStatusBadge(booking.billingStatus || booking.status)}
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={booking.paymentStatus || 'Pending'}
-                          color={getPaymentStatusColor(booking.paymentStatus || 'pending')}
-                          size="small"
-                          sx={{ textTransform: 'capitalize' }}
-                        />
+                        {renderStatusBadge(booking.paymentStatus || 'Pending')}
                       </TableCell>
                       <TableCell>
                         ₹{formatCurrency(booking.totalAmount || booking.amount)}
@@ -586,13 +679,13 @@ const BookingsManagement = () => {
                       <TableBody>
                         {draftMaterials && draftMaterials.length > 0 ? (
                           draftMaterials.map((mat, idx) => (
-                            <TableRow key={idx}>
+                            <TableRow key={idx} sx={{ bgcolor: 'grey.50' }}>
                               <TableCell>{mat.name}</TableCell>
                               <TableCell align="right">
                                 ₹{formatCurrency(mat.cost)}
-                                {(!selectedBooking.materials || !selectedBooking.materials.some(em => em.name === mat.name && em.cost === mat.cost)) && (
+                                {(!selectedBooking.materials || !selectedBooking.materials.some(em => em.name === mat.name && em.cost === mat.cost)) && selectedBooking.status?.toLowerCase() !== 'completed' && (
                                   <IconButton size="small" color="error" onClick={() => handleRemoveMaterial(idx)} sx={{ ml: 1 }}>
-                                    <DeleteIcon fontSize="inherit" />
+                                    <DeleteOutlineIcon fontSize="inherit" />
                                   </IconButton>
                                 )}
                               </TableCell>
@@ -637,11 +730,21 @@ const BookingsManagement = () => {
                             </TableCell>
                           </TableRow>
                         )}
+                        {/* Financial Visual Divider */}
+                        <TableRow>
+                          <TableCell colSpan={2} sx={{ p: 0, borderBottom: 'none' }}>
+                            <Divider sx={{ borderBottomWidth: 2, borderColor: 'grey.300', my: 1 }} />
+                          </TableCell>
+                        </TableRow>
                         {/* Final Authoritative Total */}
                         <TableRow sx={{ bgcolor: '#f0fdf4' }}>
-                          <TableCell align="right" sx={{ fontWeight: 'bold', color: 'success.main' }}>Calculated Grand Total</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 'bold', color: 'success.main', fontSize: '1.1rem' }}>
-                            ₹{formatCurrency(draftFinalTotal)}
+                          <TableCell align="right">
+                            <Typography variant="body1" fontWeight="bold" color="primary.dark">Calculated Grand Total</Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="h5" fontWeight="800" color="primary.dark">
+                              ₹{formatCurrency(draftFinalTotal)}
+                            </Typography>
                           </TableCell>
                         </TableRow>
                       </TableBody>
@@ -649,6 +752,7 @@ const BookingsManagement = () => {
                   </TableContainer>
 
                   {/* Add Material Form */}
+                  {selectedBooking.status?.toLowerCase() !== 'completed' && (
                   <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                     <TextField
                       label="Item Name"
@@ -666,17 +770,21 @@ const BookingsManagement = () => {
                       sx={{ width: 120 }}
                     />
                     <Button
-                      variant="contained"
-                      color="secondary"
+                      variant="outlined"
+                      color="primary"
+                      startIcon={<AddCircleOutlineIcon />}
                       onClick={handleAddMaterial}
                       disabled={!materialName || !materialCost || loading.updating}
+                      sx={{ bgcolor: 'primary.50' }}
                     >
                       Add
                     </Button>
                   </Box>
+                  )}
                 </Box>
 
                 {/* Ad-Hoc Discount Section */}
+                {selectedBooking.status?.toLowerCase() !== 'completed' && (
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 3, p: 2, bgcolor: '#fef2f2', borderRadius: 1, border: '1px dashed #ef4444' }}>
                   <Typography variant="subtitle2" color="error.main" sx={{ minWidth: 120 }}>
                     Apply Ad-Hoc Discount:
@@ -705,6 +813,7 @@ const BookingsManagement = () => {
                     Apply
                   </Button>
                 </Box>
+                )}
               </Grid>
 
               {/* Booking & Customer Info */}
@@ -741,12 +850,9 @@ const BookingsManagement = () => {
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={4}>
                       <Typography variant="subtitle2" color="textSecondary">Payment Status</Typography>
-                      <Chip
-                        label={selectedBooking.paymentStatus || 'Pending'}
-                        color={getPaymentStatusColor(selectedBooking.paymentStatus || 'pending')}
-                        size="small"
-                        sx={{ mt: 0.5, textTransform: 'capitalize' }}
-                      />
+                      <Box sx={{ mt: 0.5 }}>
+                        {renderStatusBadge(selectedBooking.paymentStatus || 'pending')}
+                      </Box>
                     </Grid>
                     <Grid item xs={12} md={4}>
                       <Typography variant="subtitle2" color="textSecondary">Payment Method</Typography>
@@ -864,6 +970,7 @@ const BookingsManagement = () => {
                         color="success"
                         onClick={handleSubmitMasterUpdate} 
                         disabled={!draftFinalTotal || isSubmittingQuote || isCalculating}
+                        startIcon={(isSubmittingQuote || isCalculating) ? <CircularProgress size={20} color="inherit" /> : null}
                       >
                         {isSubmittingQuote ? "Saving & Notifying..." : isCalculating ? "Calculating Fees..." : "Save Draft & Send Update to Customer"}
                       </Button>
@@ -913,18 +1020,41 @@ const BookingsManagement = () => {
                                     setProPhone(val.phone || "");
                                   }
                                 }}
-                                renderInput={(params) => <TextField {...params} label="Professional Name" />}
+                                renderInput={(params) => (
+                                  <TextField 
+                                    {...params} 
+                                    label="Professional Name" 
+                                    InputProps={{
+                                      ...params.InputProps,
+                                      startAdornment: (
+                                        <InputAdornment position="start">
+                                          <PersonIcon color="action" fontSize="small" />
+                                        </InputAdornment>
+                                      )
+                                    }}
+                                  />
+                                )}
                               />
                             </Grid>
                             <Grid item xs={12} md={6}>
                               <TextField
                                 fullWidth label="Phone" size="small" value={proPhone}
                                 onChange={(e) => setProPhone(e.target.value)}
+                                placeholder="e.g., 98765 43210"
+                                helperText="Enter 10-digit phone number"
+                                InputProps={{
+                                  startAdornment: (
+                                    <InputAdornment position="start">
+                                      <PhoneIcon color="action" fontSize="small" />
+                                    </InputAdornment>
+                                  )
+                                }}
                               />
                             </Grid>
                           </Grid>
                           <Button 
-                            variant="contained" fullWidth sx={{ mt: 2 }}
+                            variant="contained" fullWidth 
+                            sx={{ mt: 4, py: 1.5, fontWeight: 'bold', boxShadow: 3 }}
                             onClick={() => { setStatus("confirmed"); setTimeout(() => handleUpdateStatus(), 0); }}
                             disabled={!proName || !proPhone}
                           >
@@ -991,7 +1121,8 @@ const BookingsManagement = () => {
                           </Grid>
                         </Grid>
                         <Button 
-                          variant="contained" color="success" fullWidth sx={{ mt: 2 }}
+                          variant="contained" color="success" fullWidth sx={{ mt: 2, fontWeight: 'bold' }}
+                          startIcon={<ReceiptLongIcon />}
                           onClick={() => { setStatus("completed"); setTimeout(() => handleUpdateStatus(), 0); }}
                         >
                           Complete Job & Generate Invoice
@@ -1011,6 +1142,41 @@ const BookingsManagement = () => {
 
                 </Paper>
               </Grid>
+
+              {/* Cash Ledger / Settlement Offline */}
+              {(selectedBooking.status?.toLowerCase() === 'in_progress' || selectedBooking.status?.toLowerCase() === 'completed') && selectedBooking.paymentStatus !== 'paid' && (
+                <Grid item xs={12}>
+                  <Box sx={{ mt: 2, p: 2, bgcolor: '#fffbed', borderRadius: 1, border: '1px solid #f59e0b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2" color="warning.dark">
+                      <strong>Offline Settlement:</strong> The customer has balance remaining.
+                    </Typography>
+                    <Button 
+                      variant="contained" 
+                      color="warning" 
+                      size="small" 
+                      sx={{ fontWeight: 'bold' }}
+                      startIcon={<PaymentsOutlinedIcon />}
+                      onClick={async () => {
+                        const targetAmount = selectedBooking.quote?.total || selectedBooking.totalAmount;
+                        const totalPaid = selectedBooking.installments?.reduce((sum, inst) => sum + inst.amount, 0) || 0;
+                        const amount = targetAmount - totalPaid;
+                        try {
+                          const response = await axiosInstance.post(`/bookings/${selectedBooking._id || selectedBooking.id}/record-payment`, {
+                            amount,
+                            method: 'cash'
+                          });
+                          if(response.data.success) {
+                            dispatch(fetchBookings());
+                            handleCloseDialog();
+                          }
+                        } catch(e) { console.error(e) }
+                      }}
+                    >
+                      Mark as Paid (Cash)
+                    </Button>
+                  </Box>
+                </Grid>
+              )}
 
               {/* Status Update (Legacy - Removed as per requirements but keeping handle fallback) */}
               
