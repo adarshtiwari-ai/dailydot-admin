@@ -651,39 +651,57 @@ const BookingsManagement = () => {
                     </div>
                   ))}
 
-                  {/* Dynamic Materials */}
-                  {selectedBooking.materials && selectedBooking.materials.length > 0 && selectedBooking.materials.map((mat, idx) => (
+                  {/* Dynamic Materials (Reactive) */}
+                  {draftMaterials && draftMaterials.length > 0 && draftMaterials.map((mat, idx) => (
                     <div key={`mat-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem', color: '#d97706' }}>
                       <span>+ {mat.name}</span>
                       <span>₹{formatCurrency(mat.cost)}</span>
                     </div>
                   ))}
 
-                  {/* Dynamic Fees */}
-                  {selectedBooking.appliedFees && selectedBooking.appliedFees.length > 0 && selectedBooking.appliedFees.map((fee, idx) => (
-                    <div key={`fee-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280' }}>
-                      <span>{fee.name}</span>
-                      <span>₹{formatCurrency(fee.amount)}</span>
-                    </div>
-                  ))}
+                  {/* Dynamic Fees (Reactive) */}
+                  {(draftBreakdown.platformFee > 0 || draftBreakdown.convenienceFee > 0) && (
+                    <>
+                      {draftBreakdown.platformFee > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280' }}>
+                          <span>Platform Fee</span>
+                          <span>₹{formatCurrency(draftBreakdown.platformFee)}</span>
+                        </div>
+                      )}
+                      {draftBreakdown.convenienceFee > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280' }}>
+                          <span>Convenience Fee</span>
+                          <span>₹{formatCurrency(draftBreakdown.convenienceFee)}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
 
-                  {/* Explicit Tax (GST) Row */}
-                  {(selectedBooking.taxAmount > 0 || selectedBooking.quote?.tax > 0) && (
+                  {/* Explicit Tax (GST) Row (Reactive) */}
+                  {(draftBreakdown.taxAmount > 0) && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280' }}>
-                      <span>Tax ({(selectedBooking.quote?.taxRate || 0.18) * 100}% GST)</span>
-                      <span>₹{formatCurrency(selectedBooking.taxAmount || selectedBooking.quote?.tax || 0)}</span>
+                      <span>Tax (18% GST)</span>
+                      <span>₹{formatCurrency(draftBreakdown.taxAmount)}</span>
                     </div>
                   )}
 
-                  {/* Dynamic Discounts */}
+                  {/* User Promo Code (Original) */}
                   {selectedBooking.appliedDiscounts && selectedBooking.appliedDiscounts.length > 0 && selectedBooking.appliedDiscounts.map((discount, idx) => (
-                    <div key={`disc-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#ef4444', fontWeight: 'bold' }}>
-                      <span>{discount.name}</span>
+                    <div key={`disc-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#059669', fontWeight: 'bold' }}>
+                      <span>Promo Applied: {discount.name}</span>
                       <span>- ₹{formatCurrency(Math.abs(discount.amount))}</span>
                     </div>
                   ))}
 
-                  {/* Dynamic Adjustments */}
+                  {/* Admin Custom Discount (Reactive) */}
+                  {draftDiscount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#ef4444', fontWeight: 'bold' }}>
+                      <span>Admin Ad-Hoc Discount</span>
+                      <span>- ₹{formatCurrency(draftDiscount)}</span>
+                    </div>
+                  )}
+
+                  {/* Dynamic Adjustments (Misc) */}
                   {selectedBooking.adjustments && selectedBooking.adjustments.length > 0 && selectedBooking.adjustments.map((adj, idx) => (
                     <div key={`adj-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280', fontStyle: 'italic' }}>
                       <span>Adjustment: {adj.reason}</span>
@@ -694,8 +712,8 @@ const BookingsManagement = () => {
                   <hr style={{ margin: '12px 0', borderColor: '#d1d5db', border: '0', borderTop: '1px solid #d1d5db' }} />
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.2rem', color: '#111827' }}>
-                    <span>Grand Total</span>
-                    <span>₹{formatCurrency(selectedBooking.finalTotal || selectedBooking.totalAmount || selectedBooking.totalPrice)}</span>
+                    <span>Calculated Total</span>
+                    <span>₹{formatCurrency(draftFinalTotal)}</span>
                   </div>
 
                   {/* Admin P&L Ledger (Internal Only) */}
@@ -912,57 +930,14 @@ const BookingsManagement = () => {
                             <TableCell colSpan={2} align="center">No additional materials added.</TableCell>
                           </TableRow>
                         )}
-                        {/* Dynamic Fees from Settings */}
-                        {draftBreakdown.platformFee !== undefined && (
-                          <TableRow>
-                            <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>Platform Fee (from Settings)</TableCell>
-                            <TableCell align="right" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
-                              ₹{formatCurrency(draftBreakdown.platformFee)}
-                            </TableCell>
-                          </TableRow>
-                        )}
-                        {draftBreakdown.convenienceFee !== undefined && (
-                          <TableRow>
-                            <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>Convenience Fee (from Settings)</TableCell>
-                            <TableCell align="right" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
-                              ₹{formatCurrency(draftBreakdown.convenienceFee)}
-                            </TableCell>
-                          </TableRow>
-                        )}
-                        {draftBreakdown.taxAmount !== undefined && (
-                          <TableRow>
-                            <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>GST (18% on Service Base)</TableCell>
-                            <TableCell align="right" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
-                              ₹{formatCurrency(draftBreakdown.taxAmount)}
-                            </TableCell>
-                          </TableRow>
-                        )}
-                        {/* Draft Preview Row (Subtotal of Staged changes) */}
-                        {(draftMaterials.length > 0 || draftDiscount > 0) && (
-                          <TableRow sx={{ bgcolor: '#fff7ed' }}>
-                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Staged Change Sum</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                              ₹{formatCurrency(draftMaterials.reduce((s, m) => s + m.cost, 0) - draftDiscount)}
-                            </TableCell>
-                          </TableRow>
-                        )}
+                        {/* Reactive Rows (Tax/Fees) Relocated to Top Breakdown Hub */}
                         {/* Financial Visual Divider */}
                         <TableRow>
                           <TableCell colSpan={2} sx={{ p: 0, borderBottom: 'none' }}>
                             <Divider sx={{ borderBottomWidth: 2, borderColor: 'grey.300', my: 1 }} />
                           </TableCell>
                         </TableRow>
-                        {/* Final Authoritative Total */}
-                        <TableRow sx={{ bgcolor: '#f0fdf4' }}>
-                          <TableCell align="right">
-                            <Typography variant="body1" fontWeight="bold" color="primary.dark">Calculated Grand Total</Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="h5" fontWeight="800" color="primary.dark">
-                              ₹{formatCurrency(draftFinalTotal)}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
+                        {/* Summary View removed from bottom area to focus on inputs */}
                       </TableBody>
                     </Table>
                   </TableContainer>
