@@ -263,11 +263,12 @@ const BookingsManagement = () => {
     setSelectedBooking(null);
   };
 
-  const handleUpdateStatus = async () => {
-    if (selectedBooking && status) {
-      console.log("Updating Status for:", selectedBooking._id || selectedBooking.id, "to", status);
-      const isConfirmed = status.toLowerCase() === "confirmed";
-      const isCompleted = status.toLowerCase() === "completed";
+  const handleUpdateStatus = async (targetStatus) => {
+    const finalUpdateStatus = targetStatus || status;
+    if (selectedBooking && finalUpdateStatus) {
+      console.log("Updating Status for:", selectedBooking._id || selectedBooking.id, "to", finalUpdateStatus);
+      const isConfirmed = finalUpdateStatus.toLowerCase() === "confirmed" || finalUpdateStatus.toLowerCase() === "assigned";
+      const isCompleted = finalUpdateStatus.toLowerCase() === "completed";
 
       // Validation for Confirm & Assign step
       if (isConfirmed && !selectedProId) {
@@ -278,7 +279,7 @@ const BookingsManagement = () => {
       try {
         const response = await dispatch(updateBookingStatus({
           id: selectedBooking._id || selectedBooking.id,
-          status: status.toLowerCase(),
+          status: finalUpdateStatus.toLowerCase(),
           professionalId: isConfirmed ? selectedProId : undefined,
           materialCost: isCompleted ? Math.round(Number(settlementMaterialCost) * 100) : undefined,
           adminCommission: isCompleted ? Math.round(Number(settlementAdminCommission) * 100) : undefined,
@@ -696,7 +697,7 @@ const BookingsManagement = () => {
                         <Button 
                           variant="contained" fullWidth 
                           sx={{ mt: 4, py: 1.5, fontWeight: 'bold', boxShadow: 3 }}
-                          onClick={() => { setStatus("confirmed"); setTimeout(() => handleUpdateStatus(), 0); }}
+                          onClick={() => handleUpdateStatus("assigned")}
                           disabled={!selectedProId}
                         >
                           Confirm & Assign Pro
@@ -712,7 +713,7 @@ const BookingsManagement = () => {
                             <Grid item xs={12}>
                               <Button 
                                 variant="contained" fullWidth color="info"
-                                onClick={() => { setStatus("on_the_way"); setTimeout(() => handleUpdateStatus(), 0); }}
+                                onClick={() => handleUpdateStatus("on_the_way")}
                               >
                                 Mark as 'On The Way'
                               </Button>
@@ -723,7 +724,7 @@ const BookingsManagement = () => {
                             <Grid item xs={12}>
                               <Button 
                                 variant="contained" fullWidth color="warning"
-                                onClick={() => { setStatus("in_progress"); setTimeout(() => handleUpdateStatus(), 0); }}
+                                onClick={() => handleUpdateStatus("in_progress")}
                               >
                                 Mark as 'In Progress' (Start Work)
                               </Button>
