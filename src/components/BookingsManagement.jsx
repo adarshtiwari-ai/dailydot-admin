@@ -332,13 +332,15 @@ const BookingsManagement = () => {
   };
 
   const handleApplyCustomDiscount = () => {
-    if (customDiscountAmount) {
-      const discountVal = Math.round(Number(customDiscountAmount) * 100);
-      setDraftDiscount(discountVal);
-      // We don't add to materials array here yet, we just stage the discount value
-      // or we could add it as a negative material. Let's stick to the staged discount value
-      // as requested in the plan.
+    if (!customDiscountAmount) return;
+    const discountVal = Math.round(Number(customDiscountAmount) * 100);
+
+    // VALIDATION: Prevent discount from exceeding the calculated grand total
+    if (discountVal > draftFinalTotal) {
+      alert(`Discount (₹${(discountVal / 100).toFixed(2)}) cannot exceed the Grand Total (₹${(draftFinalTotal / 100).toFixed(2)}). Please enter a smaller amount.`);
+      return;
     }
+    setDraftDiscount(discountVal);
   };
 
   const handleSubmitMasterUpdate = async () => {
@@ -347,14 +349,8 @@ const BookingsManagement = () => {
     try {
       const bookingId = selectedBooking._id || selectedBooking.id;
 
-      // Unify staged materials and ad-hoc discounts into a single array
+      // Submit Final Quote — adminDiscount is a first-class field, NOT a negative material
       const finalMaterials = [...draftMaterials];
-      if (draftDiscount > 0) {
-        finalMaterials.push({
-          name: customDiscountName || "Ad-Hoc Discount",
-          cost: -draftDiscount
-        });
-      }
 
       // Submit Final Quote (Atomic payload with integrated materials)
       const response = await axiosInstance.post(`/admin/bookings/${bookingId}/submit-quote`, {
@@ -365,6 +361,7 @@ const BookingsManagement = () => {
           materials: finalMaterials.reduce((sum, mat) => sum + mat.cost, 0),
           platformFee: draftBreakdown.platformFee,
           convenienceFee: draftBreakdown.convenienceFee,
+          adminDiscount: draftDiscount, // First-class labeled discount (in Paise)
           total: draftFinalTotal
         },
         materials: finalMaterials,
@@ -594,7 +591,7 @@ const BookingsManagement = () => {
                         {renderStatusBadge(booking.paymentStatus || 'Pending')}
                       </TableCell>
                       <TableCell>
-                        ₹{formatCurrency(booking.totalAmount || booking.amount)}
+                        ₹{formatCurrency(booking.quote?.total || booking.totalAmount || booking.amount)}
                       </TableCell>
                       <TableCell>
                         <Button
