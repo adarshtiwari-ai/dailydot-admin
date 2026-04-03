@@ -27,14 +27,16 @@ export const fetchBookings = createAsyncThunk(
 // Update booking status (admin only - as per API doc)
 export const updateBookingStatus = createAsyncThunk(
   "bookings/updateStatus",
-  async ({ id, status, proName, proPhone, materialCost, adminCommission }, { rejectWithValue }) => {
+  async ({ id, status, professionalId, proName, proPhone, materialCost, adminCommission, taxAmount }, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.patch(`/bookings/${id}/status`, {
         status,
+        professionalId,
         proName,
         proPhone,
         materialCost,
-        adminCommission
+        adminCommission,
+        taxAmount
       });
 
       const data = response.data;

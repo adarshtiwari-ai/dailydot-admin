@@ -146,6 +146,7 @@ const BookingsManagement = () => {
   const [status, setStatus] = useState("");
   const [proName, setProName] = useState("");
   const [proPhone, setProPhone] = useState("");
+  const [selectedProId, setSelectedProId] = useState(null);
   const [availablePros, setAvailablePros] = useState([]);
   const [fetchingPros, setFetchingPros] = useState(false);
   const [materialName, setMaterialName] = useState("");
@@ -269,17 +270,16 @@ const BookingsManagement = () => {
       const isCompleted = status.toLowerCase() === "completed";
 
       // Validation for Confirm & Assign step
-      if (isConfirmed && (!proName || !proPhone)) {
-        alert("Please select or enter professional details to confirm.");
+      if (isConfirmed && !selectedProId) {
+        alert("Please select a professional to confirm.");
         return;
       }
-
+  
       try {
         const response = await dispatch(updateBookingStatus({
           id: selectedBooking._id || selectedBooking.id,
           status: status.toLowerCase(),
-          proName: isConfirmed ? proName : undefined,
-          proPhone: isConfirmed ? proPhone : undefined,
+          professionalId: isConfirmed ? selectedProId : undefined,
           materialCost: isCompleted ? Math.round(Number(settlementMaterialCost) * 100) : undefined,
           adminCommission: isCompleted ? Math.round(Number(settlementAdminCommission) * 100) : undefined,
           taxAmount: isCompleted ? Math.round(Number(selectedBooking.baseCost || selectedBooking.totalAmount) * (Number(customTaxRate) / 100)) : undefined
@@ -656,6 +656,9 @@ const BookingsManagement = () => {
                                 if (val && typeof val === 'object') {
                                   setProName(val.name);
                                   setProPhone(val.phone || "");
+                                  setSelectedProId(val._id);
+                                } else {
+                                  setSelectedProId(null);
                                 }
                               }}
                               renderInput={(params) => (
@@ -694,7 +697,7 @@ const BookingsManagement = () => {
                           variant="contained" fullWidth 
                           sx={{ mt: 4, py: 1.5, fontWeight: 'bold', boxShadow: 3 }}
                           onClick={() => { setStatus("confirmed"); setTimeout(() => handleUpdateStatus(), 0); }}
-                          disabled={!proName || !proPhone}
+                          disabled={!selectedProId}
                         >
                           Confirm & Assign Pro
                         </Button>
