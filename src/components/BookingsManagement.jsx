@@ -629,7 +629,106 @@ const BookingsManagement = () => {
           </DialogTitle>
           <DialogContent dividers>
             <Grid container spacing={3}>
-              {/* Phase 3: Selection & Execution (Now prioritized at top for Pending/Confirmed) */}
+              {/* 1. Promo Alert (Priority 1) */}
+              {(selectedBooking.discountAmount > 0 || selectedBooking.appliedDiscounts?.length > 0) && (
+                <Grid item xs={12}>
+                  <Alert severity="info" sx={{ mb: 1, fontWeight: 'bold', border: '1px solid #0288d1' }}>
+                    Promo Applied: This customer used a discount code. Verify final math before adding ad-hoc discounts.
+                  </Alert>
+                </Grid>
+              )}
+
+              {/* 2. Itemized Billing Breakdown (Priority 2 - Elevated from bottom) */}
+              <Grid item xs={12}>
+                <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', marginBottom: '16px', color: '#1f2937', fontFamily: 'sans-serif' }}>
+                  <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#111827' }}>Customer Bill Breakdown</h3>
+
+                  {/* Services (Base Cost) */}
+                  {selectedBooking.items && selectedBooking.items.map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
+                      <span>{item.name || item.serviceId?.name || "Service Item"} (x{item.quantity || 1})</span>
+                      <span>₹{formatCurrency((item.price || 0) * (item.quantity || 1))}</span>
+                    </div>
+                  ))}
+
+                  {/* Dynamic Materials */}
+                  {selectedBooking.materials && selectedBooking.materials.length > 0 && selectedBooking.materials.map((mat, idx) => (
+                    <div key={`mat-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem', color: '#d97706' }}>
+                      <span>+ {mat.name}</span>
+                      <span>₹{formatCurrency(mat.cost)}</span>
+                    </div>
+                  ))}
+
+                  {/* Dynamic Fees */}
+                  {selectedBooking.appliedFees && selectedBooking.appliedFees.length > 0 && selectedBooking.appliedFees.map((fee, idx) => (
+                    <div key={`fee-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280' }}>
+                      <span>{fee.name}</span>
+                      <span>₹{formatCurrency(fee.amount)}</span>
+                    </div>
+                  ))}
+
+                  {/* Explicit Tax (GST) Row */}
+                  {(selectedBooking.taxAmount > 0 || selectedBooking.quote?.tax > 0) && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280' }}>
+                      <span>Tax ({(selectedBooking.quote?.taxRate || 0.18) * 100}% GST)</span>
+                      <span>₹{formatCurrency(selectedBooking.taxAmount || selectedBooking.quote?.tax || 0)}</span>
+                    </div>
+                  )}
+
+                  {/* Dynamic Discounts */}
+                  {selectedBooking.appliedDiscounts && selectedBooking.appliedDiscounts.length > 0 && selectedBooking.appliedDiscounts.map((discount, idx) => (
+                    <div key={`disc-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#ef4444', fontWeight: 'bold' }}>
+                      <span>{discount.name}</span>
+                      <span>- ₹{formatCurrency(Math.abs(discount.amount))}</span>
+                    </div>
+                  ))}
+
+                  {/* Dynamic Adjustments */}
+                  {selectedBooking.adjustments && selectedBooking.adjustments.length > 0 && selectedBooking.adjustments.map((adj, idx) => (
+                    <div key={`adj-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280', fontStyle: 'italic' }}>
+                      <span>Adjustment: {adj.reason}</span>
+                      <span>{adj.amount > 0 ? "+" : ""} ₹{formatCurrency(adj.amount)}</span>
+                    </div>
+                  ))}
+
+                  <hr style={{ margin: '12px 0', borderColor: '#d1d5db', border: '0', borderTop: '1px solid #d1d5db' }} />
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.2rem', color: '#111827' }}>
+                    <span>Grand Total</span>
+                    <span>₹{formatCurrency(selectedBooking.finalTotal || selectedBooking.totalAmount || selectedBooking.totalPrice)}</span>
+                  </div>
+
+                  {/* Admin P&L Ledger (Internal Only) */}
+                  {selectedBooking.isSettled && (
+                    <div style={{ padding: '12px', backgroundColor: '#ecfdf5', borderRadius: '6px', marginTop: '16px', border: '1px solid #10b981' }}>
+                      <h4 style={{ margin: '0 0 8px 0', color: '#065f46', fontSize: '0.95rem' }}>Internal Admin Ledger</h4>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: '#065f46' }}>
+                        <span>Internal Material Cost</span>
+                        <span>₹{formatCurrency(selectedBooking.materialCost || 0)}</span>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: '#065f46' }}>
+                        <span style={{ fontWeight: '600' }}>Platform Profit</span>
+                        <span>₹{formatCurrency(selectedBooking.netPlatformProfit || selectedBooking.adminCommission || 0)}</span>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#065f46', borderTop: '1px dashed #10b981', paddingTop: '4px', marginTop: '4px' }}>
+                        <span style={{ fontWeight: 'bold' }}>Provider Payout</span>
+                        <span style={{ fontWeight: 'bold' }}>
+                          ₹{formatCurrency(
+                            (selectedBooking.finalTotal || selectedBooking.totalAmount || selectedBooking.totalPrice || 0) -
+                            (selectedBooking.materialCost || 0) -
+                            (selectedBooking.netPlatformProfit || selectedBooking.adminCommission || 0)
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Grid>
+
+              {/* 3. Worker Assignment & Execution (Priority 3 - Now after Money) */}
               {(selectedBooking.status?.toLowerCase() === 'pending' || 
                 selectedBooking.billingStatus === 'pending_visit' || 
                 selectedBooking.status?.toLowerCase() === 'confirmed' || 
@@ -651,6 +750,16 @@ const BookingsManagement = () => {
                             <Autocomplete
                               fullWidth freeSolo size="small" options={availablePros}
                               getOptionLabel={(option) => typeof option === 'string' ? option : option.name}
+                              renderOption={(props, option) => (
+                                <Box component="li" {...props} sx={{ display: 'flex', flexDirection: 'column', py: 1 }}>
+                                  <Typography variant="body1" fontWeight="bold">
+                                    {option.name}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {option.phone} • {option.status || 'Active'}
+                                  </Typography>
+                                </Box>
+                              )}
                               onInputChange={(e, val) => setProName(val)}
                               onChange={(e, val) => {
                                 if (val && typeof val === 'object') {
@@ -1293,95 +1402,7 @@ const BookingsManagement = () => {
                 </Grid>
               ) : null}
 
-              {/* Native Itemized Billing Breakdown (Vercel-Safe) */}
-              <Grid item xs={12}>
-                <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', marginTop: '16px', color: '#1f2937', fontFamily: 'sans-serif' }}>
-                  <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#111827' }}>Customer Bill Breakdown</h3>
-
-                  {/* Services (Base Cost) */}
-                  {selectedBooking.items && selectedBooking.items.map((item, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
-                      <span>{item.name || item.serviceId?.name || "Service Item"} (x{item.quantity || 1})</span>
-                      <span>₹{formatCurrency((item.price || 0) * (item.quantity || 1))}</span>
-                    </div>
-                  ))}
-
-                  {/* Dynamic Materials */}
-                  {selectedBooking.materials && selectedBooking.materials.length > 0 && selectedBooking.materials.map((mat, idx) => (
-                    <div key={`mat-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem', color: '#d97706' }}>
-                      <span>+ {mat.name}</span>
-                      <span>₹{formatCurrency(mat.cost)}</span>
-                    </div>
-                  ))}
-
-                  {/* Dynamic Fees */}
-                  {selectedBooking.appliedFees && selectedBooking.appliedFees.length > 0 && selectedBooking.appliedFees.map((fee, idx) => (
-                    <div key={`fee-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280' }}>
-                      <span>{fee.name}</span>
-                      <span>₹{formatCurrency(fee.amount)}</span>
-                    </div>
-                  ))}
-
-                  {/* Explicit Tax (GST) Row */}
-                  {(selectedBooking.taxAmount > 0 || selectedBooking.quote?.tax > 0) && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280' }}>
-                      <span>Tax ({(selectedBooking.quote?.taxRate || 0.18) * 100}% GST)</span>
-                      <span>₹{formatCurrency(selectedBooking.taxAmount || selectedBooking.quote?.tax || 0)}</span>
-                    </div>
-                  )}
-
-                  {/* Dynamic Discounts */}
-                  {selectedBooking.appliedDiscounts && selectedBooking.appliedDiscounts.length > 0 && selectedBooking.appliedDiscounts.map((discount, idx) => (
-                    <div key={`disc-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#ef4444', fontWeight: 'bold' }}>
-                      <span>{discount.name}</span>
-                      <span>- ₹{formatCurrency(Math.abs(discount.amount))}</span>
-                    </div>
-                  ))}
-
-                  {/* Dynamic Adjustments */}
-                  {selectedBooking.adjustments && selectedBooking.adjustments.length > 0 && selectedBooking.adjustments.map((adj, idx) => (
-                    <div key={`adj-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#6b7280', fontStyle: 'italic' }}>
-                      <span>Adjustment: {adj.reason}</span>
-                      <span>{adj.amount > 0 ? "+" : ""} ₹{formatCurrency(adj.amount)}</span>
-                    </div>
-                  ))}
-
-                  <hr style={{ margin: '12px 0', borderColor: '#d1d5db', border: '0', borderTop: '1px solid #d1d5db' }} />
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.2rem', color: '#111827' }}>
-                    <span>Grand Total</span>
-                    <span>₹{formatCurrency(selectedBooking.finalTotal || selectedBooking.totalAmount || selectedBooking.totalPrice)}</span>
-                  </div>
-
-                  {/* Admin P&L Ledger (Internal Only) */}
-                  {selectedBooking.isSettled && (
-                    <div style={{ padding: '12px', backgroundColor: '#ecfdf5', borderRadius: '6px', marginTop: '16px', border: '1px solid #10b981' }}>
-                      <h4 style={{ margin: '0 0 8px 0', color: '#065f46', fontSize: '0.95rem' }}>Internal Admin Ledger</h4>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: '#065f46' }}>
-                        <span>Internal Material Cost</span>
-                        <span>₹{formatCurrency(selectedBooking.materialCost || 0)}</span>
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.9rem', color: '#065f46' }}>
-                        <span style={{ fontWeight: '600' }}>Platform Profit</span>
-                        <span>₹{formatCurrency(selectedBooking.netPlatformProfit || selectedBooking.adminCommission || 0)}</span>
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#065f46', borderTop: '1px dashed #10b981', paddingTop: '4px', marginTop: '4px' }}>
-                        <span style={{ fontWeight: 'bold' }}>Provider Payout</span>
-                        <span style={{ fontWeight: 'bold' }}>
-                          ₹{formatCurrency(
-                            (selectedBooking.finalTotal || selectedBooking.totalAmount || selectedBooking.totalPrice || 0) -
-                            (selectedBooking.materialCost || 0) -
-                            (selectedBooking.netPlatformProfit || selectedBooking.adminCommission || 0)
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </Grid>
+              {/* Original Itemized Billing Breakdown Relocated to Top */}
             </Grid>
           </DialogContent>
           <DialogActions>
