@@ -204,15 +204,17 @@ const BookingsManagement = () => {
         setSelectedBooking(booking);
         setStatus(booking.status);
         
-        // Calculate the immutable bestCostTotal for taxing purposes
+        // 1. Calculate the raw service base for taxing purposes
         const bct = (booking.items || []).reduce((sum, item) => {
             const bcp = item.serviceId?.bestCostPrice || item.serviceId?.price || item.price || 0;
             return sum + (bcp * (item.quantity || 1));
         }, 0);
         setBestCostTotal(bct);
 
-        // Initialize UI Drafts
-        const initialQuote = booking.totalAmount ? (booking.totalAmount / 100).toString() : "";
+        // 2. Initialize UI Drafts with RAW Base Price (Ignore fees/tax for initialization)
+        const rawBase = booking.quote?.basePrice || booking.baseCost || 0;
+        const initialQuote = rawBase > 0 ? (rawBase / 100).toString() : "";
+        
         setDraftMaterials([...(booking.materials || [])]);
         setDraftDiscount(0);
         setDraftBasePrice(initialQuote);
