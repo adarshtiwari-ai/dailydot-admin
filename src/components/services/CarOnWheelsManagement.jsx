@@ -373,10 +373,11 @@ const CarOnWheelsManagement = () => {
                         </TextField>
                         <Box display="flex" gap={2}>
                             <TextField
-                                label="Price"
+                                label="Price (₹)"
                                 name="price"
                                 type="number"
                                 value={formData.price}
+                                helperText="Entered in Rupees, saved in Paise for precision."
                                 onChange={handleInputChange}
                                 fullWidth
                                 InputProps={{

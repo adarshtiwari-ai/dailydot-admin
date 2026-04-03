@@ -638,7 +638,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
                   }
                   margin="normal"
                   required
-                  helperText="Service price in rupees"
+                  helperText="Entered in Rupees, saved in Paise for precision."
                   InputProps={{
                     startAdornment: (
                       <MoneyIcon sx={{ mr: 1, color: "success.main" }} />

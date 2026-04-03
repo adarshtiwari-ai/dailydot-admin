@@ -476,6 +476,7 @@ const CategoryDetail = () => {
                   label="Price (₹)"
                   type="number"
                   value={serviceForm.price}
+                  helperText="Entered in Rupees, saved in Paise for precision."
                   onChange={(e) =>
                     setServiceForm({ ...serviceForm, price: e.target.value })
                   }

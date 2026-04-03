@@ -371,7 +371,8 @@ const DecorGuruManagement = () => {
                         </TextField>
                         <Box display="flex" gap={2}>
                             <TextField
-                                label="Price"
+                                label="Price (₹)"
+                                helperText="Entered in Rupees, saved in Paise for precision."
                                 name="price"
                                 type="number"
                                 value={formData.price}

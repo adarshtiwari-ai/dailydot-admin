@@ -74,7 +74,7 @@ const QuickFixManagement = () => {
             setSelectedQuickFix(quickFix);
             setFormData({
                 title: quickFix.title || '',
-                price: quickFix.price || '',
+                price: quickFix.price ? (quickFix.price / 100).toString() : '',
                 duration: quickFix.duration || '',
                 icon: quickFix.icon || 'construct-outline',
                 iconColor: quickFix.iconColor || '#4f46e5',
@@ -248,6 +248,7 @@ const QuickFixManagement = () => {
                                     label="Price (₹)"
                                     type="number"
                                     value={formData.price}
+                                    helperText="Entered in Rupees, saved in Paise for precision."
                                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                                     required
                                     InputProps={{

@@ -273,7 +273,7 @@ const CategoriesWithServices = () => {
       setServiceForm({
         name: service.name,
         description: service.description || "",
-        price: service.price.toString(),
+        price: service.price ? (service.price / 100).toString() : "",
         duration: service.duration?.toString() || "",
         image: service.image || "",
         imagePreview: service.image || "",
@@ -927,8 +927,9 @@ const CategoriesWithServices = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Price ($)"
+                  label="Price (₹)"
                   value={serviceForm.price}
+                  helperText="Entered in Rupees, saved in Paise for precision."
                   onChange={(e) =>
                     setServiceForm({ ...serviceForm, price: e.target.value })
                   }
