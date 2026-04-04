@@ -306,9 +306,12 @@ const BookingsManagement = () => {
         if (isCompleted || status === 'cancelled') handleCloseDialog();
       } catch (err) {
         console.error("Failed to update status:", err);
-        const errorMessage = typeof err === 'object' ? (err.message || JSON.stringify(err)) : String(err);
+        // Correctly extract the backend error message from Axios/Redux
+        const errorMessage = err.response?.data?.message || err.message || (typeof err === 'string' ? err : "Failed to update status");
         
-        if (errorMessage.includes("Professional not found")) {
+        if (errorMessage.includes("assigned professional")) {
+            alert(`Settlement Blocked: ${errorMessage}`);
+        } else if (errorMessage.includes("Professional not found")) {
             alert("Error: Professional not found. Check phone number.");
         } else {
             alert(`Failed to update status: ${errorMessage}`);
