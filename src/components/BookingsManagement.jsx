@@ -293,6 +293,9 @@ const BookingsManagement = () => {
         const updatedBooking = response.booking || response;
         setSelectedBooking(updatedBooking);
         setStatus(updatedBooking.status);
+        
+        // SYNC MASTER LIST: Refresh the dashboard background list after a successful status transition
+        dispatch(fetchBookings());
 
         if (updatedBooking.status === 'assigned') {
             alert("Worker Assigned Successfully");
@@ -1233,10 +1236,7 @@ const BookingsManagement = () => {
                             boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)'
                           }}
                           startIcon={<ReceiptLongIcon />}
-                          onClick={() => { 
-                            setStatus("completed"); 
-                            setTimeout(() => handleUpdateStatus(), 100); 
-                          }}
+                          onClick={() => handleUpdateStatus('completed')}
                         >
                           {(selectedBooking.paymentMethod === 'cod' || selectedBooking.paymentMethod === 'cash') && selectedBooking.paymentStatus !== 'paid' 
                             ? "Confirm Cash & Complete Job" 
