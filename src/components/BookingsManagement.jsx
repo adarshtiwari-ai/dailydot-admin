@@ -630,14 +630,20 @@ const BookingsManagement = () => {
           </DialogTitle>
           <DialogContent dividers>
             <Grid container spacing={3}>
-              {/* 1. Promo Alert (Priority 1) */}
-              {(selectedBooking.discountAmount > 0 || selectedBooking.appliedDiscounts?.length > 0) && (
-                <Grid item xs={12}>
+              {/* 1. Promo & Payment Alerts (Priority 1) */}
+              <Grid item xs={12}>
+                {(selectedBooking.discountAmount > 0 || selectedBooking.appliedDiscounts?.length > 0) && (
                   <Alert severity="info" sx={{ mb: 1, fontWeight: 'bold', border: '1px solid #0288d1' }}>
                     Promo Applied: This customer used a discount code. Verify final math before adding ad-hoc discounts.
                   </Alert>
-                </Grid>
-              )}
+                )}
+                
+                {(selectedBooking.paymentMethod === 'cod' || selectedBooking.paymentMethod === 'cash') && (
+                  <Alert severity="warning" sx={{ mb: 1, fontWeight: 'bold', border: '1px solid #ed6c02', bgcolor: '#fff7ed' }}>
+                    Customer Choice: Pay on Site (Cash). Collect payment before completing settlement.
+                  </Alert>
+                )}
+              </Grid>
 
               {/* 2. Itemized Billing Breakdown (Priority 2 - Elevated from bottom) */}
               <Grid item xs={12}>
