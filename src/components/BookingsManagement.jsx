@@ -232,12 +232,13 @@ const BookingsManagement = () => {
             bestCostTotal: bestCostTotal, // Isolated taxing base
             items: selectedBooking.items || [],
             materials: draftMaterials,
+            promoCode: selectedBooking.promoCode, // Preserve the customer's original promo
             adjustments: draftDiscount > 0 ? [{ reason: "Adjustment", amount: -draftDiscount }] : []
           });
           if (response.data.success) {
-            const { finalTotal, platformFee, convenienceFee, taxAmount } = response.data.receipt || response.data;
+            const { finalTotal, platformFee, convenienceFee, taxAmount, discountAmount, appliedDiscounts } = response.data.receipt || response.data;
             setDraftFinalTotal(finalTotal);
-            setDraftBreakdown({ platformFee, convenienceFee, taxAmount });
+            setDraftBreakdown({ platformFee, convenienceFee, taxAmount, discountAmount, appliedDiscounts });
           }
         } catch (err) {
           console.error("Pricing calc failed:", err);
@@ -685,8 +686,8 @@ const BookingsManagement = () => {
                     </div>
                   )}
 
-                  {/* User Promo Code (Original) */}
-                  {selectedBooking.appliedDiscounts && selectedBooking.appliedDiscounts.length > 0 && selectedBooking.appliedDiscounts.map((discount, idx) => (
+                  {/* Original Customer Promo Code (Reactive) */}
+                  {draftBreakdown.appliedDiscounts && draftBreakdown.appliedDiscounts.length > 0 && draftBreakdown.appliedDiscounts.map((discount, idx) => (
                     <div key={`disc-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85rem', color: '#059669', fontWeight: 'bold' }}>
                       <span>Promo Applied: {discount.name}</span>
                       <span>- ₹{formatCurrency(Math.abs(discount.amount))}</span>
