@@ -1214,11 +1214,27 @@ const BookingsManagement = () => {
                           </Grid>
                         </Grid>
                         <Button 
-                          variant="contained" color="success" fullWidth sx={{ mt: 2, fontWeight: 'bold' }}
+                          variant="contained" 
+                          color="success" 
+                          fullWidth 
+                          sx={{ 
+                            mt: 2, 
+                            fontWeight: 'bold', 
+                            py: 1.5,
+                            fontSize: '1rem',
+                            textTransform: 'none',
+                            boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)'
+                          }}
                           startIcon={<ReceiptLongIcon />}
-                          onClick={() => { setStatus("completed"); setTimeout(() => handleUpdateStatus(), 0); }}
+                          onClick={() => { 
+                            setStatus("completed"); 
+                            setTimeout(() => handleUpdateStatus(), 100); 
+                          }}
                         >
-                          Complete Job & Generate Invoice
+                          {(selectedBooking.paymentMethod === 'cod' || selectedBooking.paymentMethod === 'cash') && selectedBooking.paymentStatus !== 'paid' 
+                            ? "Confirm Cash & Complete Job" 
+                            : "Complete Job & Generate Invoice"
+                          }
                         </Button>
                       </Paper>
                     </Box>
@@ -1236,40 +1252,7 @@ const BookingsManagement = () => {
                 </Paper>
               </Grid>
 
-              {/* Cash Ledger / Settlement Offline */}
-              {(selectedBooking.status?.toLowerCase() === 'in_progress' || selectedBooking.status?.toLowerCase() === 'completed') && selectedBooking.paymentStatus !== 'paid' && (
-                <Grid item xs={12}>
-                  <Box sx={{ mt: 2, p: 2, bgcolor: '#fffbed', borderRadius: 1, border: '1px solid #f59e0b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="body2" color="warning.dark">
-                      <strong>Offline Settlement:</strong> The customer has balance remaining.
-                    </Typography>
-                    <Button 
-                      variant="contained" 
-                      color="warning" 
-                      size="small" 
-                      sx={{ fontWeight: 'bold' }}
-                      startIcon={<PaymentsOutlinedIcon />}
-                      onClick={async () => {
-                        const targetAmount = selectedBooking.quote?.total || selectedBooking.totalAmount;
-                        const totalPaid = selectedBooking.installments?.reduce((sum, inst) => sum + inst.amount, 0) || 0;
-                        const amount = targetAmount - totalPaid;
-                        try {
-                          const response = await axiosInstance.post(`/bookings/${selectedBooking._id || selectedBooking.id}/record-payment`, {
-                            amount,
-                            method: 'cash'
-                          });
-                          if(response.data.success) {
-                            dispatch(fetchBookings());
-                            handleCloseDialog();
-                          }
-                        } catch(e) { console.error(e) }
-                      }}
-                    >
-                      Mark as Paid (Cash)
-                    </Button>
-                  </Box>
-                </Grid>
-              )}
+              {/* Cash Ledger / Settlement Offline (Legacy - Removed as per requirements) */}
 
               {/* Status Update (Legacy - Removed as per requirements but keeping handle fallback) */}
               
