@@ -215,8 +215,8 @@ const BookingsManagement = () => {
         const rawBase = booking.quote?.basePrice || booking.baseCost || 0;
         const initialQuote = rawBase > 0 ? (rawBase / 100).toString() : "";
         
-        setDraftMaterials([...(booking.materials || [])]);
-        setDraftDiscount(0);
+        setDraftMaterials(booking.materials || []);
+        setDraftDiscount(booking.quote?.adminDiscount || 0);
         setDraftBasePrice(initialQuote);
         setOpenDialog(true);
     };
