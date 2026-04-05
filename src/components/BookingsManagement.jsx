@@ -598,7 +598,13 @@ const BookingsManagement = () => {
                         {renderStatusBadge(booking.paymentStatus || 'Pending')}
                       </TableCell>
                       <TableCell>
-                        ₹{formatCurrency(booking.quote?.total || booking.totalAmount || booking.amount)}
+                        {booking.bookingType === 'consultation' && (booking.totalAmount || 0) === 0 ? (
+                          <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main', bgcolor: 'primary.50', px: 1, py: 0.5, borderRadius: 1 }}>
+                            PENDING QUOTE
+                          </Typography>
+                        ) : (
+                          `₹${formatCurrency(booking.quote?.total || booking.totalAmount || booking.amount)}`
+                        )}
                       </TableCell>
                       <TableCell>
                         <Button
@@ -636,6 +642,15 @@ const BookingsManagement = () => {
           </DialogTitle>
           <DialogContent dividers>
             <Grid container spacing={3}>
+              {/* 0. Consultation Specific Alert (High Priority) */}
+              {selectedBooking.bookingType === 'consultation' && (selectedBooking.totalAmount || 0) === 0 && (
+                <Grid item xs={12}>
+                  <Alert severity="warning" variant="filled" sx={{ mb: 1, fontWeight: 'bold', boxShadow: 2 }}>
+                    Consultation Request: Review the customer notes below and enter a custom quote in Phase 1 to proceed.
+                  </Alert>
+                </Grid>
+              )}
+
               {/* 1. Promo & Payment Alerts (Priority 1) */}
               <Grid item xs={12}>
                 {(selectedBooking.discountAmount > 0 || selectedBooking.appliedDiscounts?.length > 0) && (
@@ -1151,6 +1166,20 @@ const BookingsManagement = () => {
                             fullWidth label="Adjusted Base Price (₹)" size="small" type="number"
                             value={draftBasePrice} onChange={(e) => setDraftBasePrice(e.target.value)}
                             helperText="Adjust the core service price before fees."
+                            sx={{ 
+                              ...(selectedBooking.bookingType === 'consultation' && !draftBasePrice && {
+                                '& .MuiOutlinedInput-root': {
+                                  '& fieldset': { borderColor: 'primary.main', borderWeight: 2 },
+                                  '&:hover fieldset': { borderColor: 'primary.dark' },
+                                  animation: 'pulse 2s infinite'
+                                },
+                                '@keyframes pulse': {
+                                  '0%': { boxShadow: '0 0 0 0 rgba(25, 118, 210, 0.4)' },
+                                  '70%': { boxShadow: '0 0 0 6px rgba(25, 118, 210, 0)' },
+                                  '100%': { boxShadow: '0 0 0 0 rgba(25, 118, 210, 0)' }
+                                }
+                              })
+                            }}
                           />
                         </Grid>
                         <Grid item xs={12} md={4}>
