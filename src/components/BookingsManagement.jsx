@@ -295,14 +295,14 @@ const BookingsManagement = () => {
         setStatus(updatedBooking.status);
         
         // SYNC MASTER LIST: Refresh the dashboard background list after a successful status transition
-        dispatch(fetchBookings());
+        await dispatch(fetchBookings());
 
         if (updatedBooking.status === 'assigned') {
             alert("Worker Assigned Successfully");
         }
 
         // We don't always want to close the dialog, but let's refresh list
-        dispatch(fetchBookings());
+        await dispatch(fetchBookings());
         if (isCompleted || status === 'cancelled') handleCloseDialog();
       } catch (err) {
         console.error("Failed to update status:", err);
@@ -595,7 +595,7 @@ const BookingsManagement = () => {
                         {renderStatusBadge(booking.billingStatus || booking.status)}
                       </TableCell>
                       <TableCell>
-                        {renderStatusBadge(booking.paymentStatus || 'Pending')}
+                        {renderStatusBadge(booking.paymentStatus || 'pending')}
                       </TableCell>
                       <TableCell>
                         {booking.bookingType === 'consultation' && (booking.totalAmount || 0) === 0 ? (
