@@ -91,12 +91,12 @@ export const addServiceToCategory = createAsyncThunk(
           name: serviceData.name,
           category: categoryId, // AUTOMATICALLY EXTRACTED - Backend expects 'category' field with MongoDB ID
           description: serviceData.description, // Required by backend
-          price: Math.round(Number(serviceData.price) * 100), // Scaled to subunits (Paise)
+          price: serviceData.price,
         };
 
         // MRP — only include if a valid non-zero value is provided
         if (serviceData.mrp) {
-          payload.mrp = Math.round(Number(serviceData.mrp) * 100); // Scaled to subunits (Paise)
+          payload.mrp = serviceData.mrp;
         }
 
         // Inclusions / Exclusions — pass through arrays directly
@@ -232,13 +232,7 @@ export const updateServiceInCategory = createAsyncThunk(
           category: categoryId, // Ensure category is always included
         };
 
-        // Ensure price scaling
-        if (payload.price) {
-          payload.price = Math.round(Number(payload.price) * 100);
-        }
-        if (payload.mrp) {
-          payload.mrp = Math.round(Number(payload.mrp) * 100);
-        }
+
       }
 
       console.log("Update payload with category:", payload);
