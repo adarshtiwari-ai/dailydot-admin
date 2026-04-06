@@ -187,6 +187,9 @@ const UsersManagement = () => {
                     <strong>Joined</strong>
                   </TableCell>
                   <TableCell>
+                    <strong>Last Login</strong>
+                  </TableCell>
+                  <TableCell>
                     <strong>Actions</strong>
                   </TableCell>
                 </TableRow>
@@ -253,6 +256,11 @@ const UsersManagement = () => {
                         {user.createdAt
                           ? new Date(user.createdAt).toLocaleDateString()
                           : "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        {user.lastLogin
+                          ? new Date(user.lastLogin).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                          : "Never"}
                       </TableCell>
                       <TableCell>
                         <Button
