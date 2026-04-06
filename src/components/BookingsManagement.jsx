@@ -584,7 +584,7 @@ const BookingsManagement = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        {booking.userId?.name || booking.name || "Guest"}
+                        {booking.name || booking.userId?.name || "N/A"}
                       </TableCell>
                       <TableCell>
                         {booking.scheduledDate
@@ -1121,8 +1121,8 @@ const BookingsManagement = () => {
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <Typography variant="subtitle2" color="textSecondary">Receiver / On-Site Contact</Typography>
-                      <Typography><strong>Name:</strong> {selectedBooking.serviceAddress?.receiverName || "Same as Customer"}</Typography>
-                      <Typography><strong>Phone:</strong> {selectedBooking.serviceAddress?.receiverPhone || "Same as Customer"}</Typography>
+                      <Typography><strong>Name:</strong> {selectedBooking.serviceAddress?.receiverName || selectedBooking.name || selectedBooking.userId?.name || "Not Provided"}</Typography>
+                      <Typography><strong>Phone:</strong> {selectedBooking.serviceAddress?.receiverPhone || selectedBooking.phone || selectedBooking.userId?.phone || "Not Provided"}</Typography>
                     </Grid>
                   </Grid>
                 </Paper>
