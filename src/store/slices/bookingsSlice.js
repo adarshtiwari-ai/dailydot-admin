@@ -71,6 +71,25 @@ export const addBookingMaterial = createAsyncThunk(
   }
 );
 
+// Add services to existing booking
+export const addServicesToBooking = createAsyncThunk(
+  "bookings/addServices",
+  async ({ id, newServices }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.patch(`/bookings/${id}/add-services`, {
+        newServices
+      });
+
+      const updatedBooking = response.data.booking || response.data.data || response.data;
+      return updatedBooking;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to add services to booking"
+      );
+    }
+  }
+);
+
 // Get single booking details
 export const fetchBookingById = createAsyncThunk(
   "bookings/fetchById",
@@ -205,6 +224,37 @@ const bookingsSlice = createSlice({
         }
       })
       .addCase(addBookingMaterial.rejected, (state, action) => {
+        state.isLoading.updating = false;
+        state.error.updating = action.payload;
+      })
+
+      // Add services cases
+      .addCase(addServicesToBooking.pending, (state) => {
+        state.isLoading.updating = true;
+        state.error.updating = null;
+      })
+      .addCase(addServicesToBooking.fulfilled, (state, action) => {
+        state.isLoading.updating = false;
+
+        const targetId = action.payload._id || action.payload.id;
+        if (!targetId) return;
+
+        state.bookings = state.bookings.map((booking) => {
+          const currentId = booking._id || booking.id;
+          if (currentId === targetId) {
+            return { ...booking, ...action.payload };
+          }
+          return booking;
+        });
+
+        if (state.currentBooking) {
+          const currentId = state.currentBooking._id || state.currentBooking.id;
+          if (currentId === targetId) {
+            state.currentBooking = { ...state.currentBooking, ...action.payload };
+          }
+        }
+      })
+      .addCase(addServicesToBooking.rejected, (state, action) => {
         state.isLoading.updating = false;
         state.error.updating = action.payload;
       })

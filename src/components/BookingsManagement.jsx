@@ -130,10 +130,12 @@ import {
   fetchBookings,
   updateBookingStatus,
   addBookingMaterial,
+  addServicesToBooking,
   selectBookings,
   selectBookingsLoading,
   selectBookingsError,
 } from "../store/slices/bookingsSlice";
+import { fetchServices, selectServices } from "../store/slices/servicesSlice";
 
 const BookingsManagement = () => {
   const dispatch = useDispatch();
@@ -153,6 +155,8 @@ const BookingsManagement = () => {
   const [materialCost, setMaterialCost] = useState("");
   const [customDiscountName, setCustomDiscountName] = useState("");
   const [customDiscountAmount, setCustomDiscountAmount] = useState("");
+  const globalServices = useSelector(selectServices);
+  const [selectedNewService, setSelectedNewService] = useState(null);
 
   // Draft State for Workspace (Non-Committal)
   const [draftMaterials, setDraftMaterials] = useState([]);
@@ -182,6 +186,7 @@ const BookingsManagement = () => {
   // Fetch bookings when component loads
   useEffect(() => {
     dispatch(fetchBookings());
+    dispatch(fetchServices());
     fetchAvailablePros();
   }, [dispatch]);
 
@@ -336,6 +341,31 @@ const BookingsManagement = () => {
     const newList = [...draftMaterials];
     newList.splice(index, 1);
     setDraftMaterials(newList);
+  };
+
+  const handleAddService = async () => {
+    if (!selectedBooking || !selectedNewService) return;
+    try {
+      const payload = {
+        newServices: [{
+          serviceId: selectedNewService._id || selectedNewService.id,
+          name: selectedNewService.name,
+          price: selectedNewService.price, // Raw Paisa, NO MULTIPLICATION
+          quantity: 1
+        }]
+      };
+      await dispatch(addServicesToBooking({ 
+        id: selectedBooking._id || selectedBooking.id, 
+        newServices: payload.newServices 
+      })).unwrap();
+      
+      setSelectedNewService(null);
+      // Wait for modal to reactively recalculate. Re-fetch booking for fresh data.
+      const updatedResponse = await axiosInstance.get(`/bookings/${selectedBooking._id || selectedBooking.id}`);
+      setSelectedBooking(updatedResponse.data.booking || updatedResponse.data.data);
+    } catch (err) {
+      alert(`Failed to add service: ${err}`);
+    }
   };
 
   const handleApplyCustomDiscount = () => {
@@ -678,6 +708,20 @@ const BookingsManagement = () => {
                       <span>₹{formatCurrency((item.price || 0) * (item.quantity || 1))}</span>
                     </div>
                   ))}
+
+                  {/* Add Additional Service */}
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', marginTop: '8px' }}>
+                    <Autocomplete
+                      fullWidth
+                      size="small"
+                      options={globalServices || []}
+                      getOptionLabel={(option) => `${option.name} - ₹${(option.price / 100).toFixed(2)}`}
+                      value={selectedNewService}
+                      onChange={(e, val) => setSelectedNewService(val)}
+                      renderInput={(params) => <TextField {...params} label="Add Additional Service" variant="outlined" />}
+                    />
+                    <Button variant="contained" size="small" onClick={handleAddService} disabled={!selectedNewService}>Add</Button>
+                  </div>
 
                   {/* Dynamic Materials (Reactive) */}
                   {draftMaterials && draftMaterials.length > 0 && draftMaterials.map((mat, idx) => (
