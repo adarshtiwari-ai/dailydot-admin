@@ -278,6 +278,12 @@ const BookingsManagement = () => {
       const isConfirmed = finalUpdateStatus.toLowerCase() === "confirmed" || finalUpdateStatus.toLowerCase() === "assigned";
       const isCompleted = finalUpdateStatus.toLowerCase() === "completed";
 
+      if (isCompleted) {
+        if (!window.confirm("Are you sure you want to complete this booking and settle the invoice?")) {
+          return;
+        }
+      }
+
       // Validation for Confirm & Assign step
       if (isConfirmed && !selectedProId) {
         alert("Please select a professional to confirm.");
