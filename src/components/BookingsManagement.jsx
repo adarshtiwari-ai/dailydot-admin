@@ -157,6 +157,7 @@ const BookingsManagement = () => {
   const [customDiscountAmount, setCustomDiscountAmount] = useState("");
   const globalServices = useSelector(selectServices);
   const [selectedNewService, setSelectedNewService] = useState(null);
+  const [serviceMultiplier, setServiceMultiplier] = useState(1);
 
   // Draft State for Workspace (Non-Committal)
   const [draftMaterials, setDraftMaterials] = useState([]);
@@ -357,7 +358,7 @@ const BookingsManagement = () => {
           serviceId: selectedNewService._id || selectedNewService.id,
           name: selectedNewService.name,
           price: selectedNewService.price, // Raw Paisa, NO MULTIPLICATION
-          quantity: 1
+          quantity: Number(serviceMultiplier) || 1 // Dynamic Multiplier
         }]
       };
       await dispatch(addServicesToBooking({ 
@@ -366,6 +367,7 @@ const BookingsManagement = () => {
       })).unwrap();
       
       setSelectedNewService(null);
+      setServiceMultiplier(1);
       // Wait for modal to reactively recalculate. Re-fetch booking for fresh data.
       const updatedResponse = await axiosInstance.get(`/bookings/${selectedBooking._id || selectedBooking.id}`);
       setSelectedBooking(updatedResponse.data.booking || updatedResponse.data.data);
@@ -725,6 +727,15 @@ const BookingsManagement = () => {
                       value={selectedNewService}
                       onChange={(e, val) => setSelectedNewService(val)}
                       renderInput={(params) => <TextField {...params} label="Add Additional Service" variant="outlined" />}
+                    />
+                    <TextField 
+                        label="Qty / Multiplier" 
+                        type="number" 
+                        size="small" 
+                        sx={{ width: '130px' }}
+                        inputProps={{ step: "0.1", min: "0.1" }}
+                        value={serviceMultiplier}
+                        onChange={(e) => setServiceMultiplier(e.target.value)}
                     />
                     <Button variant="contained" size="small" onClick={handleAddService} disabled={!selectedNewService}>Add</Button>
                   </div>
