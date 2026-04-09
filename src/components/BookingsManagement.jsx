@@ -986,6 +986,30 @@ const BookingsManagement = () => {
                         <TableCell colSpan={2} align="right"><strong>Base Cost</strong></TableCell>
                         <TableCell align="right"><strong>₹{formatCurrency(selectedBooking.baseCost || selectedBooking.totalAmount || selectedBooking.amount)}</strong></TableCell>
                       </TableRow>
+
+                      {/* Promo Code Discount Row */}
+                      {((selectedBooking.totalDiscount || 0) - (selectedBooking.adminDiscount || 0)) > 0 && (
+                        <TableRow sx={{ backgroundColor: "#f0fdf4" }}>
+                          <TableCell colSpan={2} align="right" sx={{ color: "success.main", fontWeight: "medium" }}>
+                            Promo Code Discount
+                          </TableCell>
+                          <TableCell align="right" sx={{ color: "success.main", fontWeight: "bold" }}>
+                            - ₹{formatCurrency((selectedBooking.totalDiscount || 0) - (selectedBooking.adminDiscount || 0))}
+                          </TableCell>
+                        </TableRow>
+                      )}
+
+                      {/* Admin Courtesy Discount Row */}
+                      {selectedBooking.adminDiscount > 0 && (
+                        <TableRow sx={{ backgroundColor: "#fef2f2" }}>
+                          <TableCell colSpan={2} align="right" sx={{ color: "error.main", fontWeight: "medium" }}>
+                            Admin Courtesy Discount
+                          </TableCell>
+                          <TableCell align="right" sx={{ color: "error.main", fontWeight: "bold" }}>
+                            - ₹{formatCurrency(selectedBooking.adminDiscount)}
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>
