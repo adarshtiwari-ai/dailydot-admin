@@ -273,6 +273,10 @@ const BookingsManagement = () => {
   };
 
   const handleUpdateStatus = async (targetStatus) => {
+    // If targetStatus is a React event object, ignore it and use undefined
+    if (targetStatus && typeof targetStatus === 'object' && targetStatus.target) {
+        targetStatus = undefined;
+    }
     const finalUpdateStatus = targetStatus || status;
     if (selectedBooking && finalUpdateStatus) {
       console.log("Updating Status for:", selectedBooking._id || selectedBooking.id, "to", finalUpdateStatus);
@@ -912,6 +916,7 @@ const BookingsManagement = () => {
                           </Grid>
                         </Grid>
                         <Button 
+                          type="button"
                           variant="contained" fullWidth 
                           sx={{ mt: 4, py: 1.5, fontWeight: 'bold', boxShadow: 3 }}
                           onClick={() => handleUpdateStatus("assigned")}
@@ -929,6 +934,7 @@ const BookingsManagement = () => {
                           {selectedBooking.status?.toLowerCase() === 'confirmed' || selectedBooking.status?.toLowerCase() === 'assigned' || selectedBooking.status?.toLowerCase() === 'pending' ? (
                             <Grid item xs={12}>
                               <Button 
+                                type="button"
                                 variant="contained" fullWidth color="info"
                                 onClick={() => handleUpdateStatus("on_the_way")}
                               >
@@ -940,6 +946,7 @@ const BookingsManagement = () => {
                           {selectedBooking.status?.toLowerCase() === 'on_the_way' ? (
                             <Grid item xs={12}>
                               <Button 
+                                type="button"
                                 variant="contained" fullWidth color="warning"
                                 onClick={() => handleUpdateStatus("in_progress")}
                               >
@@ -1286,6 +1293,7 @@ const BookingsManagement = () => {
                         </Grid>
                       </Grid>
                       <Button
+                        type="button"
                         variant="contained" fullWidth sx={{ mt: 2, py: 1.5, fontWeight: 'bold' }}
                         color="success"
                         onClick={handleSubmitMasterUpdate} 
@@ -1343,6 +1351,7 @@ const BookingsManagement = () => {
                           </Grid>
                         </Grid>
                         <Button 
+                          type="button"
                           variant="contained" 
                           color="success" 
                           fullWidth 
@@ -1491,7 +1500,7 @@ const BookingsManagement = () => {
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog}>Close</Button>
-            <Button variant="contained" onClick={handleUpdateStatus} color="primary">
+            <Button type="button" variant="contained" onClick={() => handleUpdateStatus()} color="primary">
               Update Status
             </Button>
           </DialogActions>
