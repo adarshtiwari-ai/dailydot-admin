@@ -989,6 +989,25 @@ const BookingsManagement = () => {
                           <TableCell align="right">₹{formatCurrency(selectedBooking.totalAmount || selectedBooking.amount)}</TableCell>
                         </TableRow>
                       )}
+
+                      {/* Saved Additional Materials */}
+                      {selectedBooking.materials && selectedBooking.materials.length > 0 && (
+                          selectedBooking.materials.map((mat, index) => (
+                              <TableRow key={`saved-mat-${index}`} sx={{ backgroundColor: "#f8fafc" }}>
+                                  <TableCell colSpan={2}>
+                                      <Typography variant="body2" color="textSecondary">
+                                          🔧 Material: {mat.name} {mat.qty > 1 ? `(x${mat.qty})` : ""}
+                                      </Typography>
+                                  </TableCell>
+                                  <TableCell align="right">
+                                      <Typography variant="body2" color="textSecondary" sx={{ fontWeight: "medium" }}>
+                                          + ₹{formatCurrency(mat.cost)}
+                                      </Typography>
+                                  </TableCell>
+                              </TableRow>
+                          ))
+                      )}
+
                       <TableRow>
                         <TableCell colSpan={2} align="right"><strong>Base Cost</strong></TableCell>
                         <TableCell align="right"><strong>₹{formatCurrency(selectedBooking.baseCost || selectedBooking.totalAmount || selectedBooking.amount)}</strong></TableCell>
