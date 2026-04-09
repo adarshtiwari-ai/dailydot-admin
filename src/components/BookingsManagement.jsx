@@ -295,7 +295,7 @@ const BookingsManagement = () => {
         const response = await dispatch(updateBookingStatus({
           id: selectedBooking._id || selectedBooking.id,
           status: finalUpdateStatus.toLowerCase(),
-          professionalId: isConfirmed ? selectedProId : undefined,
+          professionalId: (isConfirmed && selectedProId) ? selectedProId : undefined,
           proName: isConfirmed ? proName : undefined,
           proPhone: isConfirmed ? proPhone : undefined,
           materialCost: isCompleted ? Math.round(Number(settlementMaterialCost) * 100) : undefined,
