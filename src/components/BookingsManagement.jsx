@@ -285,9 +285,9 @@ const BookingsManagement = () => {
         }
       }
 
-      // Validation for Confirm & Assign step
-      if (isConfirmed && !selectedProId) {
-        alert("Please select a professional to confirm.");
+      // Validation for Confirm & Assign step (Allow ID OR name+phone combo)
+      if (isConfirmed && !selectedProId && !(proName && proPhone)) {
+        alert("Please select a professional or enter a new name and phone to confirm.");
         return;
       }
   
@@ -296,6 +296,8 @@ const BookingsManagement = () => {
           id: selectedBooking._id || selectedBooking.id,
           status: finalUpdateStatus.toLowerCase(),
           professionalId: isConfirmed ? selectedProId : undefined,
+          proName: isConfirmed ? proName : undefined,
+          proPhone: isConfirmed ? proPhone : undefined,
           materialCost: isCompleted ? Math.round(Number(settlementMaterialCost) * 100) : undefined,
           adminCommission: isCompleted ? Math.round(Number(settlementAdminCommission) * 100) : undefined,
           taxAmount: isCompleted ? Math.round(Number(selectedBooking.baseCost || selectedBooking.totalAmount) * (Number(customTaxRate) / 100)) : undefined
@@ -913,7 +915,7 @@ const BookingsManagement = () => {
                           variant="contained" fullWidth 
                           sx={{ mt: 4, py: 1.5, fontWeight: 'bold', boxShadow: 3 }}
                           onClick={() => handleUpdateStatus("assigned")}
-                          disabled={!selectedProId}
+                          disabled={!(selectedProId || (proName && proPhone))}
                         >
                           Confirm & Assign Pro
                         </Button>
