@@ -1369,6 +1369,8 @@ const BookingsManagement = () => {
                             />
                           </Grid>
                         </Grid>
+                        {/* Legacy Completion Button - Online Only */}
+                        {(selectedBooking.paymentMethod !== 'cod' && selectedBooking.paymentMethod !== 'cash') && (
                         <Button 
                           type="button"
                           variant="contained" 
@@ -1390,6 +1392,7 @@ const BookingsManagement = () => {
                             : "Complete Job & Generate Invoice"
                           }
                         </Button>
+                        )}
                       </Paper>
                     </Box>
                   )}
@@ -1519,6 +1522,22 @@ const BookingsManagement = () => {
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog}>Close</Button>
+            
+            {/* MASTER CASH COMPLETION OVERRIDE */}
+            {(selectedBooking.paymentMethod === 'cod' || selectedBooking.paymentMethod === 'cash') && 
+             selectedBooking.status?.toLowerCase() !== 'completed' && 
+             selectedBooking.status?.toLowerCase() !== 'cancelled' && (
+                <Button 
+                    type="button"
+                    variant="contained" 
+                    color="success"
+                    onClick={() => handleUpdateStatus('completed')}
+                    sx={{ fontWeight: 'bold' }}
+                >
+                    Confirm Cash & Complete Job
+                </Button>
+            )}
+
             <Button type="button" variant="contained" onClick={() => handleUpdateStatus()} color="primary">
               Update Status
             </Button>
