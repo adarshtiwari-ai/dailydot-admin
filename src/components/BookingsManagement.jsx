@@ -1337,7 +1337,7 @@ const BookingsManagement = () => {
                         onClick={handleForceApprove}
                         startIcon={<Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'warning.main' }} />}
                       >
-                        Admin Override: Force Approve Quote
+                        Force Approve (Verbal Agreement)
                       </Button>
                     </Box>
                   )}
