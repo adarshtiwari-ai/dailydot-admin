@@ -81,6 +81,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
     isStartingPrice: false,
     pricingUnit: "fixed",
     searchTags: "",
+    variants: [],
   });
 
   const [isUploading, setIsUploading] = useState(false);
@@ -134,6 +135,13 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         isStartingPrice: service.isStartingPrice || false,
         pricingUnit: service.pricingUnit || "fixed",
         searchTags: service.searchTags && Array.isArray(service.searchTags) ? service.searchTags.join(', ') : "",
+        variants: service?.variants?.length > 0
+          ? service.variants.map(v => ({
+              ...v,
+              price: v.price ? (Number(v.price) / 100).toString() : "",
+              mrp: v.mrp ? (Number(v.mrp) / 100).toString() : ""
+            }))
+          : [],
       });
     } else {
       setSelectedService(null);
@@ -152,6 +160,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         isStartingPrice: false,
         pricingUnit: "fixed",
         searchTags: "",
+        variants: [],
       });
     }
     setOpenDialog(true);
@@ -175,6 +184,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
       isStartingPrice: false,
       pricingUnit: "fixed",
       searchTags: "",
+      variants: [],
     });
   };
 
@@ -216,6 +226,28 @@ const CategoryServicesManagement = ({ category, onBack }) => {
     }
   };
 
+  const handleAddVariant = () => {
+    setServiceForm(prev => ({
+      ...prev,
+      variants: [...prev.variants, { name: "", price: "", mrp: "", image: "" }]
+    }));
+  };
+
+  const handleVariantChange = (index, field, value) => {
+    setServiceForm(prev => {
+      const newVariants = [...prev.variants];
+      newVariants[index] = { ...newVariants[index], [field]: value };
+      return { ...prev, variants: newVariants };
+    });
+  };
+
+  const handleRemoveVariant = (index) => {
+    setServiceForm(prev => ({
+      ...prev,
+      variants: prev.variants.filter((_, i) => i !== index)
+    }));
+  };
+
   const handleSaveService = async () => {
     try {
       if (!serviceForm.name.trim()) {
@@ -243,7 +275,13 @@ const CategoryServicesManagement = ({ category, onBack }) => {
         isStartingPrice: serviceForm.isStartingPrice,
         pricingUnit: serviceForm.pricingUnit,
         searchTags: serviceForm.searchTags ? serviceForm.searchTags.split(',').map(tag => tag.trim()).filter(tag => tag !== '') : [],
-        category: categoryId
+        category: categoryId,
+        variants: serviceForm.variants.map(v => ({
+          name: v.name,
+          price: Math.round(Number(v.price) * 100),
+          mrp: v.mrp ? Math.round(Number(v.mrp) * 100) : undefined,
+          image: v.image || ""
+        })),
       };
 
       if (selectedService) {
@@ -904,6 +942,94 @@ const CategoryServicesManagement = ({ category, onBack }) => {
               label="Active Service"
               sx={{ mt: 2, display: "block" }}
             />
+
+            {/* Variants Section */}
+            <Divider sx={{ my: 3 }} />
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="subtitle1" fontWeight="bold">
+                Variants
+              </Typography>
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={handleAddVariant}
+                variant="outlined"
+              >
+                Add Variant
+              </Button>
+            </Box>
+
+            {serviceForm.variants.length === 0 && (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontStyle: 'italic' }}>
+                No variants added. Use the button above to add size/type options.
+              </Typography>
+            )}
+
+            {serviceForm.variants.map((variant, index) => (
+              <Paper
+                key={index}
+                variant="outlined"
+                sx={{ p: 2, mb: 2, position: 'relative', borderColor: 'divider' }}
+              >
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Variant {index + 1}
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => handleRemoveVariant(index)}
+                    title="Remove variant"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={3}>
+                    <TextField
+                      fullWidth
+                      label="Variant Name"
+                      size="small"
+                      value={variant.name}
+                      onChange={(e) => handleVariantChange(index, 'name', e.target.value)}
+                      required
+                      placeholder="e.g. 1BHK, Small"
+                    />
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <TextField
+                      fullWidth
+                      label="Price (₹)"
+                      size="small"
+                      type="number"
+                      value={variant.price}
+                      onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
+                      required
+                    />
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <TextField
+                      fullWidth
+                      label="MRP (₹)"
+                      size="small"
+                      type="number"
+                      value={variant.mrp}
+                      onChange={(e) => handleVariantChange(index, 'mrp', e.target.value)}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <TextField
+                      fullWidth
+                      label="Image URL"
+                      size="small"
+                      value={variant.image}
+                      onChange={(e) => handleVariantChange(index, 'image', e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </Grid>
+                </Grid>
+              </Paper>
+            ))}
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 1 }}>

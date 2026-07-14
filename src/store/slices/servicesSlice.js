@@ -138,6 +138,11 @@ export const addServiceToCategory = createAsyncThunk(
         if (serviceData.tagId) {
           payload.tagId = serviceData.tagId;
         }
+
+        // Variants — pass through the array as-is for multi-variant services
+        if (serviceData.variants !== undefined) {
+          payload.variants = serviceData.variants;
+        }
       }
 
       console.log(
