@@ -85,6 +85,7 @@ const CategoryServicesManagement = ({ category, onBack }) => {
   });
 
   const [isUploading, setIsUploading] = useState(false);
+  const [variantUploading, setVariantUploading] = useState({});
 
   // Debug logs to check category data
   useEffect(() => {
@@ -246,6 +247,33 @@ const CategoryServicesManagement = ({ category, onBack }) => {
       ...prev,
       variants: prev.variants.filter((_, i) => i !== index)
     }));
+  };
+
+  const handleVariantImageUpload = async (index, event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert(`Image ${file.name} is too large (max 5MB)`);
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      alert(`File ${file.name} is not an image`);
+      return;
+    }
+
+    try {
+      setVariantUploading(prev => ({ ...prev, [index]: true }));
+      const uploadedUrl = await uploadToCloudinary(file);
+      handleVariantChange(index, 'image', uploadedUrl);
+    } catch (error) {
+      console.error("Variant image upload error:", error);
+      alert("Failed to upload variant image");
+    } finally {
+      setVariantUploading(prev => ({ ...prev, [index]: false }));
+      // Reset the input so re-selecting the same file triggers onChange
+      event.target.value = '';
+    }
   };
 
   const handleSaveService = async () => {
@@ -1018,14 +1046,48 @@ const CategoryServicesManagement = ({ category, onBack }) => {
                     />
                   </Grid>
                   <Grid item xs={12} sm={3}>
-                    <TextField
-                      fullWidth
-                      label="Image URL"
-                      size="small"
-                      value={variant.image}
-                      onChange={(e) => handleVariantChange(index, 'image', e.target.value)}
-                      placeholder="https://..."
-                    />
+                    {variant.image ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, height: '100%' }}>
+                        <Avatar
+                          src={getOptimizedUrl(variant.image)}
+                          variant="rounded"
+                          sx={{ width: 40, height: 40, border: '1px solid', borderColor: 'divider' }}
+                        >
+                          <ImageIcon fontSize="small" />
+                        </Avatar>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleVariantChange(index, 'image', '')}
+                          title="Remove variant image"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    ) : (
+                      <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+                        <input
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          id={`variant-image-upload-${index}`}
+                          type="file"
+                          onChange={(e) => handleVariantImageUpload(index, e)}
+                          disabled={variantUploading[index]}
+                        />
+                        <label htmlFor={`variant-image-upload-${index}`} style={{ width: '100%' }}>
+                          <Button
+                            variant="outlined"
+                            component="span"
+                            size="small"
+                            disabled={variantUploading[index]}
+                            startIcon={variantUploading[index] ? <CircularProgress size={14} /> : <ImageIcon />}
+                            sx={{ width: '100%', height: '40px', textTransform: 'none' }}
+                          >
+                            {variantUploading[index] ? 'Uploading...' : 'Upload Image'}
+                          </Button>
+                        </label>
+                      </Box>
+                    )}
                   </Grid>
                 </Grid>
               </Paper>
