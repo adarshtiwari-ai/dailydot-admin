@@ -970,6 +970,7 @@ const BookingsManagement = () => {
                       <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                         <TableCell><strong>Item Name</strong></TableCell>
                         <TableCell><strong>Category</strong></TableCell>
+                        <TableCell align="center"><strong>Quantity</strong></TableCell>
                         <TableCell align="right"><strong>Price</strong></TableCell>
                       </TableRow>
                     </TableHead>
@@ -979,13 +980,15 @@ const BookingsManagement = () => {
                           <TableRow key={index}>
                             <TableCell>{item.name}</TableCell>
                             <TableCell>{item.category || "N/A"}</TableCell>
-                            <TableCell align="right">₹{formatCurrency(item.price)}</TableCell>
+                            <TableCell align="center">{item.quantity || 1}</TableCell>
+                            <TableCell align="right">₹{formatCurrency((item.price || 0) * (item.quantity || 1))}</TableCell>
                           </TableRow>
                         ))
                       ) : (
                         <TableRow>
                           <TableCell>{selectedBooking.service?.name || selectedBooking.serviceName || "N/A"}</TableCell>
                           <TableCell>N/A</TableCell>
+                          <TableCell align="center">1</TableCell>
                           <TableCell align="right">₹{formatCurrency(selectedBooking.totalAmount || selectedBooking.amount)}</TableCell>
                         </TableRow>
                       )}
